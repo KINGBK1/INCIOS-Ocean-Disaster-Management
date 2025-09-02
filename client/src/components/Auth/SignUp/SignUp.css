@@ -1,0 +1,751 @@
+/* SignUpPage.css */
+
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+/* Keyframe Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(10deg);
+  }
+}
+
+@keyframes floatDelayed {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(-5deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Main Container */
+.signup-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background Elements */
+.background-elements {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.floating-shape {
+  position: absolute;
+  border-radius: 20px;
+  filter: blur(40px);
+}
+
+.shape-1 {
+  top: 10%;
+  right: 10%;
+  width: 300px;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+  animation: float 8s ease-in-out infinite;
+}
+
+.shape-2 {
+  bottom: 10%;
+  left: 10%;
+  width: 250px;
+  height: 180px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(59, 130, 246, 0.3));
+  animation: floatDelayed 10s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.shape-3 {
+  top: 30%;
+  left: 60%;
+  width: 200px;
+  height: 150px;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(251, 191, 36, 0.2));
+  animation: pulse 6s ease-in-out infinite;
+}
+
+/* Card Styling */
+.signup-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  z-index: 10;
+}
+
+.card-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 2.5rem 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+    0 20px 20px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 32px rgba(118, 75, 162, 0.3);
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* OAuth Section */
+.oauth-section {
+  margin: 1rem 0;
+  /* opacity: 0; */
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.oauth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.oauth-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.google-btn {
+  border-color: #ea4335;
+  color: #ea4335;
+}
+
+.google-btn:hover {
+  background: #ea4335;
+  color: white;
+}
+
+.microsoft-btn {
+  border-color: #0078d4;
+  color: #0078d4;
+}
+
+.microsoft-btn:hover {
+  background: #0078d4;
+  color: white;
+}
+
+.oauth-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.divider-text {
+  background: white;
+  padding: 0 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  position: relative;
+}
+
+/* Form Container */
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* User Type Selection */
+.user-type-section .section-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+}
+
+.user-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.user-type-button {
+  position: relative;
+  padding: 0.875rem 0.5rem;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-height: 70px;
+}
+
+.user-type-button:hover {
+  transform: translateY(-1px);
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-type-button:active {
+  transform: scale(0.98);
+}
+
+.user-type-button.active.admin-gradient {
+  border: transparent;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+}
+
+.user-type-button.active.ngo-gradient {
+  border: transparent;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+.user-type-button.active.ddmo-gradient {
+  border: transparent;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.user-type-button.active.user-gradient {
+  border: transparent;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.button-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.button-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.check-icon {
+  width: 14px;
+  height: 14px;
+  color: #10b981;
+}
+
+/* Form Sections */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* opacity: 0; */
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Input Styling */
+.input-container {
+  position: relative;
+  width: 100%;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: white;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.form-input:hover {
+  border-color: #d1d5db;
+}
+
+.form-input:focus {
+  border-color: transparent;
+  /* ring: 2px; */
+}
+
+.form-input.admin-focus:focus {
+  box-shadow: 0 0 0 2px #ef4444;
+}
+
+.form-input.ngo-focus:focus {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.form-input.ddmo-focus:focus {
+  box-shadow: 0 0 0 2px #10b981;
+}
+
+.form-input.user-focus:focus {
+  box-shadow: 0 0 0 2px #8b5cf6;
+}
+
+.form-input.location-focus:focus {
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+/* Input with icon */
+.input-container .input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.input-container .input-icon + .form-input {
+  padding-left: 42px;
+}
+
+.input-icon.admin-color {
+  color: #ef4444;
+}
+
+.input-icon.ngo-color {
+  color: #3b82f6;
+}
+
+.input-icon.ddmo-color {
+  color: #10b981;
+}
+
+.input-icon.user-color {
+  color: #8b5cf6;
+}
+
+.input-icon.location-color {
+  color: #6366f1;
+}
+
+/* Password Toggle */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  font-size: 16px;
+}
+
+.password-toggle:hover {
+  color: #6b7280;
+}
+
+/* Checkbox Styling */
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.checkbox-container:hover {
+  background: rgba(249, 250, 251, 0.5);
+}
+
+.checkbox-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.checkbox-input {
+  position: absolute;
+  opacity: 0;
+}
+
+.checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-custom.checked {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+}
+
+.checkbox-check {
+  width: 12px;
+  height: 12px;
+  color: white;
+}
+
+.checkbox-text {
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.link {
+  color: #667eea;
+  text-decoration: underline;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: #764ba2;
+}
+
+/* Submit Button */
+.submit-button {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.submit-button.enabled {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 4px 14px rgba(118, 75, 162, 0.3);
+}
+
+.submit-button.enabled:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(118, 75, 162, 0.4);
+}
+
+.submit-button.enabled:active {
+  transform: scale(0.98);
+}
+
+.submit-button.disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.arrow-container {
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow {
+  font-size: 0.75rem;
+}
+
+/* Footer */
+.footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  opacity: 0;
+}
+
+.footer-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.footer-link {
+  color: #667eea;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.footer-link:hover {
+  color: #764ba2;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .signup-container {
+    padding: 0.75rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+  
+  .signup-card {
+    max-width: 100%;
+  }
+  
+  .card-content {
+    padding: 2rem 1.5rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .oauth-buttons {
+    gap: 0.5rem;
+  }
+  
+  .oauth-button {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 0.5rem;
+    padding-top: 1rem;
+  }
+  
+  .card-content {
+    padding: 1.5rem 1rem;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .subtitle {
+    font-size: 0.875rem;
+  }
+  
+  .user-type-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .user-type-button {
+    padding: 0.75rem;
+    min-height: 60px;
+  }
+  
+  .button-content {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .button-label {
+    font-size: 0.8125rem;
+  }
+  
+  .logo-container {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 0.75rem;
+  }
+  
+  .logo-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .form-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .oauth-button {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .oauth-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .checkbox-text {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .card-content {
+    padding: 1.25rem 0.75rem;
+  }
+  
+  .user-type-button {
+    padding: 0.625rem 0.5rem;
+    min-height: 55px;
+  }
+  
+  .button-label {
+    font-size: 0.75rem;
+  }
+  
+  .form-input {
+    padding: 0.625rem;
+  }
+  
+  .input-container .input-icon + .form-input {
+    padding-left: 36px;
+  }
+}
