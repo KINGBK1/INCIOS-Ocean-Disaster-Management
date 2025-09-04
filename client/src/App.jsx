@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import SignUpPage from './components/Auth/SignUp/SignUp'
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import Dashboard from './components/Dashboard/Dashboard';
+import UserDashboard from './components/Dashboard/UserDashboard';
 import SignIn from './components/Auth/SignIn/SignIn';
 
 const App = () => {
@@ -14,7 +14,7 @@ const App = () => {
             <Route path="/signup" element={<SignUpPage />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/" element={<Navigate to="/signup" />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<UserDashboard />} />
           </Routes>
         </Router>
       </GoogleOAuthProvider>
