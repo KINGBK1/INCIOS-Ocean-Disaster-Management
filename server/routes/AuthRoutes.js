@@ -7,6 +7,9 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/google-login", googleLogin);
+router.get("/status", authMiddleware, (req, res) => {
+  res.json({ message: "Authenticated", user: req.user });
+}) ; 
 
 // only admin can approve NGO/DDMO/Admin signups
 router.patch("/approve/:id", authMiddleware, authorizeRoles("admin"), approveUser);

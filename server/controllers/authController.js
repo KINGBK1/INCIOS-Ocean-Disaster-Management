@@ -11,38 +11,60 @@ export const register = async (req, res) => {
   try {
     const { username, email, password, role, officialId, location } = req.body;
 
-    if (role !== "user" && !officialId) {
-      return res.status(400).json({ message: "Official ID required" });
+    if (!username) {
+      return res.status(400).json({ message: "Username is required" });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Email already registered" });
+    if (role !== "user" && !officialId) {
+      return res.status(400).json({ message: "Official ID is required for this role" });
+    }
 
+    if (role === "user" && !password) {
+      return res.status(400).json({ message: "Password is required for regular users" });
+    }
+
+    // Check uniqueness
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+    }
+
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
+
+    // Create user
     const user = new User({
       username,
-      email,
+      email: email || undefined, // email optional
       password,
       role,
-      officialId,
+      officialId: role !== "user" ? officialId : undefined,
       location,
       isApproved: role === "user" ? true : false
     });
 
     await user.save();
 
+    //  Response
     if (user.role !== "user") {
-      return res.status(201).json({ 
-        message: "Account created. Awaiting admin approval.", 
-        user 
+      return res.status(201).json({
+        message: "Account created. Awaiting admin approval.",
+        user
       });
     }
 
     const token = generateToken(user._id, user.role);
     res.status(201).json({ token, user });
   } catch (err) {
+    console.error("Register error:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // google login/signup for regular user
 export const googleLogin = async (req, res) => {
@@ -68,15 +90,25 @@ export const googleLogin = async (req, res) => {
 // login
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
 
-    if (!user.isApproved) return res.status(403).json({ message: "Account pending admin approval" });
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.isApproved) {
+      return res.status(403).json({ message: "Account pending admin approval" });
+    }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const token = generateToken(user._id, user.role);
     res.json({ token, user });
@@ -84,6 +116,7 @@ export const login = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // approve accounts (admin only)
 export const approveUser = async (req, res) => {

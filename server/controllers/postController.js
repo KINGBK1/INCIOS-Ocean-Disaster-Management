@@ -1,23 +1,41 @@
 import Post from "../models/PostModel.js";
+import cloudinary from "../config/cloudinary.js";
 
 // Create a new post
 export const createPost = async (req, res) => {
   try {
-    console.log("Incoming Post:", req.body);
-
-    const { content, files, location } = req.body;
+    const { content, location } = req.body;
 
     // Validate content
     if (!content) {
       return res.status(400).json({ error: "Content is required" });
     }
 
+    let uploadedFiles = [];
+
+    // Handle file uploads (if any)
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map(async (file) => {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "posts",
+        });
+
+        return {
+          name: file.originalname,
+          type: file.mimetype.split("/")[0], // image, video, etc.
+          url: result.secure_url,
+        };
+      });
+
+      uploadedFiles = await Promise.all(uploadPromises);
+    }
+
     // Create post
     const newPost = new Post({
       content,
-      files,
+      files: uploadedFiles,
       location,
-      user: req.user ? req.user.id : null, 
+      user: req.user ? req.user.id : null,
     });
 
     await newPost.save();

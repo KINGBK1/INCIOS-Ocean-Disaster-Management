@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Shield, Building, MapPin, Check, AlertTriangle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-// import jwt_decode from "jwt-decode";
 import axios from 'axios';
 import './SignUp.css';
 import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 
-// const jwt_decode = (await import('jwt-decode')).default;
-
 const SignUpPage = () => {
-
   const navigate = useNavigate();
   const [userType, setUserType] = useState('');
   const [formData, setFormData] = useState({
@@ -31,6 +27,23 @@ const SignUpPage = () => {
     { value: 'ddmo', label: 'DDMO Official', icon: AlertTriangle, color: 'ddmo-gradient' },
     { value: 'user', label: 'Regular User', icon: User, color: 'user-gradient' }
   ];
+
+  // 🔹 Autofill location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            location: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
+          }));
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+        }
+      );
+    }
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -54,10 +67,16 @@ const SignUpPage = () => {
         ddmoId: formData.ddmoId || undefined,
       };
 
-      const res = await axios.post("http://localhost:7000/api/auth/register", payload);
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, payload);
 
       alert(res.data.message || "Account created successfully!");
       console.log("Registered:", res.data);
+
+      // Save user info in cookies
+      Cookies.set('user', JSON.stringify(payload), { expires: 7, path: '/' });
+
+      // Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
       console.error(err.response?.data || err.message);
       alert("Error creating account.");
@@ -70,19 +89,13 @@ const SignUpPage = () => {
         token: credentialResponse.credential,
       });
 
-      // Store token in cookie (expires in 7 days)
       Cookies.set('token', res.data.token, { expires: 7, path: '/' });
-
-      // alert("Google login success!");
-
-      // Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
       console.error(err.response?.data || err.message);
       alert("Google login failed!");
     }
   };
-
 
   const renderSpecificFields = () => {
     switch (userType) {
@@ -184,7 +197,6 @@ const SignUpPage = () => {
 
   const isFormValid = () => {
     if (!userType || !formData.location || !formData.termsAccepted) return false;
-    
     switch (userType) {
       case 'admin': return formData.adminId.trim() !== '';
       case 'ngo': return formData.ngoId.trim() !== '';
@@ -250,7 +262,6 @@ const SignUpPage = () => {
             )}
 
             {/* Location Field */}
-            {/* <p>Selected Role: {userType || 'None'}</p> */}
             {userType && (
               <div className="form-section">
                 <div className="input-container">

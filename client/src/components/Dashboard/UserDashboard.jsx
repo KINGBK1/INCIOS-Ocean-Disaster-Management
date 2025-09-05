@@ -3,8 +3,10 @@ import { MapContainer, TileLayer, Circle, Popup } from "react-leaflet";
 import { Camera, Image, Video, Mic, MapPin, Send, X } from "lucide-react";
 import { io } from "socket.io-client";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import "./UserDashboard.css";
+import UserDashboardNavbar from "./Navbar/UserDashboardNav";
 
 const UserDashboard = () => {
   const [zones, setZones] = useState([]);
@@ -13,32 +15,72 @@ const UserDashboard = () => {
   const [location, setLocation] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [posts, setPosts] = useState([]);
+  const [user, setUser] = useState(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch zones
-    fetch("http://localhost:7000/api/disasters/zones")
-      .then((res) => res.json())
-      .then((data) => setZones(data))
-      .catch((err) => console.error("Error fetching zones:", err));
+    // FETCH USER
+const fetchUser = async () => {
+  try {
+    const token = localStorage.getItem("token"); 
+    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/status`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      withCredentials: true, // keep if backend also uses cookies
+    });
+    setUser(res.data.user);
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    navigate("/signin");
+  }
+};
 
-    // Fetch posts initially
-    axios
-      .get("http://localhost:7000/api/posts")
-      .then((res) => setPosts(res.data))
-      .catch((err) => console.error("Error fetching posts:", err));
+    // FETCH ZONES (scraped coastline threats from backend)
+    const fetchZones = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/disasters/zones`);
+        setZones(res.data);
+      } catch (err) {
+        console.error("Error fetching zones:", err);
+      }
+    };
 
-    // Connect socket
+    // FETCH POSTS
+    const fetchPosts = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/posts`);
+        setPosts(res.data);
+      } catch (err) {
+        console.error("Error fetching posts:", err);
+      }
+    };
+
+    fetchUser();
+    fetchZones();
+    fetchPosts();
+
+    // SOCKET setup
     const socket = io("http://localhost:7000");
+
+    // New post
     socket.on("newPost", (newPost) => {
       setPosts((prev) => [newPost, ...prev]);
+    });
+
+    // Live zone update from scraper backend
+    socket.on("zoneUpdate", (updatedZones) => {
+      console.log("Realtime zone update:", updatedZones);
+      setZones(updatedZones);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [navigate]);
 
-  // function to set circle colors based on type
+  // Style based on type
   const getZoneStyle = (type) => {
     switch (type) {
       case "danger":
@@ -47,8 +89,10 @@ const UserDashboard = () => {
         return { color: "yellow", fillColor: "yellow", fillOpacity: 0.3 };
       case "safe":
         return { color: "green", fillColor: "green", fillOpacity: 0.3 };
+      case "coastline":
+        return { color: "blue", fillColor: "blue", fillOpacity: 0.3 };
       default:
-        return { color: "blue", fillColor: "blue", fillOpacity: 0.2 };
+        return { color: "gray", fillColor: "gray", fillOpacity: 0.2 };
     }
   };
 
@@ -70,23 +114,22 @@ const UserDashboard = () => {
 
   const handlePost = async () => {
     if (!postContent.trim() && selectedFiles.length === 0) return;
-
     setIsPosting(true);
 
     try {
-      const payload = {
-        content: postContent,
-        files: selectedFiles.map((f) => ({
-          name: f.name,
-          type: f.type,
-          url: f.url,
-        })),
-        location,
-      };
+      const formData = new FormData();
+      formData.append("content", postContent);
+      formData.append("location", location);
 
-      await axios.post("http://localhost:7000/api/posts", payload);
+      selectedFiles.forEach((f) => {
+        formData.append("files", f.file);
+      });
 
-      // No need to update state here → socket.io handles it
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/posts`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
+      });
+
       setPostContent("");
       setSelectedFiles([]);
       setLocation("");
@@ -114,12 +157,10 @@ const UserDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-content">
-          <h1 className="dashboard-title">🌍 Disaster Management Dashboard</h1>
-        </div>
-      </div>
+      {/* Navbar */}
+      <nav>
+        <UserDashboardNavbar user={user} />
+      </nav>
 
       {/* Main Content */}
       <div className="main-content">
@@ -128,7 +169,7 @@ const UserDashboard = () => {
           <div className="map-section">
             <div className="map-container">
               <div className="section-header">
-                <h2 className="section-title">Live Disaster Zones</h2>
+                <h2 className="section-title">🌍 Live Disaster & Coastline Threats</h2>
               </div>
               <div className="map-wrapper">
                 <MapContainer
@@ -150,7 +191,8 @@ const UserDashboard = () => {
                       <Popup>
                         {zone.type === "danger" && "🚨 Danger Prone Zone"}
                         {zone.type === "warning" && "⚠️ Warning Zone"}
-                        {zone.type === "safe" && "✅ Nearest Safe Zone"}
+                        {zone.type === "safe" && "✅ Safe Zone"}
+                        {zone.type === "coastline" && `🌊 Coastline Threat: ${zone.label}`}
                       </Popup>
                     </Circle>
                   ))}
@@ -164,14 +206,13 @@ const UserDashboard = () => {
             {/* Create Post */}
             <div className="create-post-container">
               <div className="section-header">
-                <h2 className="section-title">Report Disaster</h2>
+                <h2 className="section-title">📢 Report Disaster</h2>
                 <p className="section-subtitle">
                   Share updates, images, and location
                 </p>
               </div>
 
               <div className="post-form">
-                {/* Text Input */}
                 <textarea
                   value={postContent}
                   onChange={(e) => setPostContent(e.target.value)}
@@ -180,7 +221,6 @@ const UserDashboard = () => {
                   rows="4"
                 />
 
-                {/* File Preview */}
                 {selectedFiles.length > 0 && (
                   <div className="file-preview-section">
                     <p className="file-preview-title">Attached files:</p>
@@ -217,7 +257,6 @@ const UserDashboard = () => {
                   </div>
                 )}
 
-                {/* Location */}
                 {location && (
                   <div className="location-display">
                     <MapPin className="location-icon" />
@@ -225,7 +264,6 @@ const UserDashboard = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="action-buttons">
                   <div className="media-buttons">
                     <label className="media-button">
@@ -250,9 +288,7 @@ const UserDashboard = () => {
 
                   <button
                     onClick={handlePost}
-                    disabled={
-                      isPosting || (!postContent.trim() && selectedFiles.length === 0)
-                    }
+                    disabled={isPosting || (!postContent.trim() && selectedFiles.length === 0)}
                     className="post-button"
                   >
                     {isPosting ? (
@@ -269,7 +305,7 @@ const UserDashboard = () => {
             {/* Recent Posts */}
             <div className="recent-posts-container">
               <div className="section-header">
-                <h3 className="section-title">Recent Reports</h3>
+                <h3 className="section-title">📰 Recent Reports</h3>
               </div>
 
               <div className="posts-feed">
@@ -281,11 +317,9 @@ const UserDashboard = () => {
                   posts.map((post) => (
                     <div key={post._id || post.id} className="post-item">
                       <div className="post-content">
-                        {post.content && (
-                          <p className="post-text">{post.content}</p>
-                        )}
+                        {post.content && <p className="post-text">{post.content}</p>}
 
-                        {post.files.length > 0 && (
+                        {post.files?.length > 0 && (
                           <div className="post-media-grid">
                             {post.files.slice(0, 4).map((fileObj, index) => (
                               <div key={index} className="post-media-item">

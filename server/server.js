@@ -10,37 +10,50 @@ import { Server } from "socket.io";
 import authRoutes from "./routes/AuthRoutes.js";
 import mapRoutes from "./routes/mapRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import coastRoutes from "./routes/coastRoutes.js";
+import incoisRoutes from "./routes/incoisRoutes.js";
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// socket.io setup
+// Define allowed origins
+const allowedOrigins = [
+  "http://localhost:5173", 
+  "https://incios-ocean-disaster-management.onrender.com", 
+];
+
+// socket.io setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    credentials: true,
   },
 });
 
 // attach io globally so routes can use it
 app.set("io", io);
 
-// Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || "*",
-  credentials: true
-}));
+// Express Middleware
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/disasters", mapRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/coast", coastRoutes);
+app.use("/api/incois", incoisRoutes);
 
 // DB Connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => {
     console.error("MongoDB connection failed:", err);
