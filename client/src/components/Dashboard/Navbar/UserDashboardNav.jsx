@@ -16,7 +16,7 @@ import {
   Cookie
 } from 'lucide-react';
 import './UserDashboardNav.css';
-// import cookie from 'js-cookie';
+import cookie from 'js-cookie';
 
 
 
@@ -26,7 +26,7 @@ const UserDashboardNavbar = ({ user }) => {
   const [notifications, setNotifications] = useState(3);
   const profileRef = useRef(null);
 
-  // ✅ Safe fallback user (prevents null crash)
+  // Fallback user data
   const safeUser = user || { 
     name: "Guest User", 
     email: "guest@example.com", 
@@ -53,10 +53,12 @@ const UserDashboardNavbar = ({ user }) => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-  const handleLogout = () => {
-  Cookie.remove('token');
-  window.location.href = '/login';
-  };
+const handleLogout = () => {
+
+  cookie.remove('token');
+
+  window.location.href = '/signin';
+};
 
   const handleProfile = () => {
     console.log('Navigate to profile...');

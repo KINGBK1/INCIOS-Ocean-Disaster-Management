@@ -21,21 +21,21 @@ const UserDashboard = () => {
 
   useEffect(() => {
     // FETCH USER
-const fetchUser = async () => {
-  try {
-    const token = localStorage.getItem("token"); 
-    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/status`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      withCredentials: true, // keep if backend also uses cookies
-    });
-    setUser(res.data.user);
-  } catch (err) {
-    console.error("Error fetching user:", err);
-    navigate("/signin");
-  }
-};
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/status`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true, // keep if backend also uses cookies
+        });
+        setUser(res.data.user);
+      } catch (err) {
+        console.error("Error fetching user:", err);
+        navigate("/signin");
+      }
+    };
 
     // FETCH ZONES (scraped coastline threats from backend)
     const fetchZones = async () => {
@@ -62,7 +62,18 @@ const fetchUser = async () => {
     fetchPosts();
 
     // SOCKET setup
-    const socket = io("http://localhost:7000");
+    const backendURL =
+      import.meta.env.MODE === "production"
+        ? import.meta.env.VITE_BACKEND_PROD_URL
+        : import.meta.env.VITE_BACKEND_URL;
+
+    const socket = io(backendURL, {
+      transports: ["websocket", "polling"], // ensure fallback works
+      withCredentials: true, // only if backend uses cookies
+    });
+
+    socket.on("connect", () => console.log("Socket connected:", socket.id));
+    socket.on("disconnect", () => console.log("Socket disconnected"));
 
     // New post
     socket.on("newPost", (newPost) => {

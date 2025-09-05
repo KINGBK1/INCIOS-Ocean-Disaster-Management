@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useNavigate } from "react-router-dom";
+import { useNavigate , Link} from "react-router-dom";
 import { User, Lock } from "lucide-react";
 import "./SignIn.css";
 
@@ -107,9 +107,13 @@ const SignInPage = () => {
           </div>
         </div>
 
-        <button onClick={handleSubmit} className="submit-button">
+        <button style={{ backgroundColor: "Blue", color: "white" }} onClick={handleSubmit} className="submit-button">
           Sign In →
         </button>
+
+        <Link to="/signup" className="signup-link">
+          Create an account
+        </Link>
 
         {/* google login */}
         <div className="oauth-section">
