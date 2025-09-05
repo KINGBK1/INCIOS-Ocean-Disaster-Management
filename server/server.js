@@ -1,12 +1,9 @@
-// index.js or server.js
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
-
-// Import routes
 import authRoutes from "./routes/AuthRoutes.js";
 import mapRoutes from "./routes/mapRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
@@ -18,30 +15,37 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Define allowed origins
 const allowedOrigins = [
-  "http://localhost:5173", 
-  "https://incios-ocean-disaster-management.onrender.com", 
+  "http://localhost:5173",
+  "https://incios-ocean-disaster-management.onrender.com",
 ];
 
-// socket.io setup with CORS
+// Socket.io setup with CORS
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   },
 });
 
-// attach io globally so routes can use it
 app.set("io", io);
 
-// Express Middleware
+// CORS Middleware
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 // Routes
@@ -50,6 +54,12 @@ app.use("/api/disasters", mapRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/coast", coastRoutes);
 app.use("/api/incois", incoisRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Server error:", err);
+  res.status(500).json({ message: "Internal server error" });
+});
 
 // DB Connection
 mongoose
@@ -65,16 +75,14 @@ app.get("/", (req, res) => {
   res.send("Disaster Management API is running...");
 });
 
-// socket connection log
+// Socket connection log
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
-
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
 
-// Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

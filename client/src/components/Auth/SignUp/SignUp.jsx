@@ -83,19 +83,23 @@ const SignUpPage = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/google-login`, {
-        token: credentialResponse.credential,
-      });
+const handleGoogleSuccess = async (credentialResponse) => {
+  try {
+    console.log("Google OAuth token:", credentialResponse.credential); // Log token for debugging
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/auth/google-login`,
+      { token: credentialResponse.credential },
+      { withCredentials: true } // Include credentials for cookies
+    );
 
-      Cookies.set('token', res.data.token, { expires: 7, path: '/' });
-      navigate('/dashboard');
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      alert("Google login failed!");
-    }
-  };
+    console.log("Google login response:", res.data); // Log response for debugging
+    Cookies.set('token', res.data.token, { expires: 7, path: '/' });
+    navigate('/dashboard');
+  } catch (err) {
+    console.error("Google login error:", err.response?.data || err.message);
+    alert(`Google login failed: ${err.response?.data?.message || err.message}`);
+  }
+};
 
   const renderSpecificFields = () => {
     switch (userType) {
