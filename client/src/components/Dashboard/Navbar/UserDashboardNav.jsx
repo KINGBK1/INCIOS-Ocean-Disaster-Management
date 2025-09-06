@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { 
   Menu, 
   X, 
@@ -12,20 +12,21 @@ import {
   LogOut, 
   ChevronDown,
   Shield,
-  Activity,
-  Cookie
+  Activity
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../Auth/context/AuthContext'; // Import AuthContext
 import './UserDashboardNav.css';
-import cookie from 'js-cookie';
-
-
 
 const UserDashboardNavbar = ({ user }) => {
+  const navigate = useNavigate();
+  // Get the logout function from AuthContext
+  const { logout } = useContext(AuthContext); 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
   const profileRef = useRef(null);
-
+  
   // Fallback user data
   const safeUser = user || { 
     name: "Guest User", 
@@ -53,12 +54,11 @@ const UserDashboardNavbar = ({ user }) => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-const handleLogout = () => {
-
-  cookie.remove('token');
-
-  window.location.href = '/signin';
-};
+  // 🔹 New, clean logout handler
+  const handleLogout = () => {
+    logout(); // This clears the cookie and updates the state
+    navigate('/signin'); // Use a clean React Router redirect
+  };
 
   const handleProfile = () => {
     console.log('Navigate to profile...');
