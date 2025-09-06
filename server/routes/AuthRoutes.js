@@ -14,4 +14,11 @@ router.get("/status", authMiddleware, (req, res) => {
 // only admin can approve NGO/DDMO/Admin signups
 router.patch("/approve/:id", authMiddleware, authorizeRoles("admin"), approveUser);
 
+
+// miscellaneous routes
+//For Pinging the server after every 5 mins
+router.get("/ping", (req, res) => {
+  res.json({ message: "Pong" });
+});
+
 export default router;
