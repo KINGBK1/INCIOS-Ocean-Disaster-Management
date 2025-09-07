@@ -16,10 +16,14 @@
   box-sizing: border-box;
 }
 
-body {
+/* ⬅️ Crucial Fix for Scrolling */
+body, #root {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   margin: 0;
   background-color: #f1f5f9; /* Dashboard background color */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Navbar Container */
@@ -31,6 +35,8 @@ body {
   top: 0;
   z-index: 1000;
   box-shadow: var(--shadow-sm);
+  /* ⬅️ Ensure navbar doesn't take up full screen height */
+  flex-shrink: 0; 
 }
 
 .navbar-container {
