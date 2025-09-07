@@ -1,9 +1,8 @@
 import Post from "../models/PostModel.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
-import fs from "fs/promises"; 
+import fs from "fs"; // Change back to standard fs for createReadStream
 import FormData from "form-data"; 
-import path from 'path';
 
 // Create a new post
 export const createPost = async (req, res) => {
@@ -15,14 +14,15 @@ export const createPost = async (req, res) => {
     let severityPrediction = false; 
     let disasterName = "unknown"; 
     
-    let firstImagePath = null;
+    let firstImageFile = null;
 
     if (req.files?.length > 0) {
       const uploadPromises = req.files.map(async (file) => {
-        if (!firstImagePath && file.mimetype.startsWith('image/')) {
-            firstImagePath = file.path;
+        if (!firstImageFile && file.mimetype.startsWith('image/')) {
+            firstImageFile = file;
         }
 
+        // We use the synchronous `fs` here for Cloudinary, which is fine
         const result = await cloudinary.uploader.upload(file.path, {
           folder: "posts",
           resource_type: "auto",
@@ -38,22 +38,21 @@ export const createPost = async (req, res) => {
     }
     
     // Call FastAPI ML model for prediction using the first image and the text
-    if (firstImagePath) {
+    if (firstImageFile) {
         try {
             const formData = new FormData();
             
-            // Read the file into a buffer before appending
-            const imageBuffer = await fs.readFile(firstImagePath);
-            formData.append("image", imageBuffer, path.basename(firstImagePath));
+            // Use createReadStream for better compatibility with form-data
+            const imageStream = fs.createReadStream(firstImageFile.path);
+            formData.append("image", imageStream, firstImageFile.originalname);
             formData.append("text", content);
 
-            // Use the correct port (4000) from the FastAPI app
             const response = await axios.post("http://localhost:4000/predict", formData, {
                 headers: formData.getHeaders(),
             });
 
             const { predicted_damage, predicted_disaster } = response.data;
-            severityPrediction = (predicted_damage === 'high' || predicted_damage === 'medium');
+            severityPrediction = (predicted_damage === 'severe_damage');
             disasterName = predicted_disaster;
 
         } catch (mlErr) {
@@ -65,7 +64,8 @@ export const createPost = async (req, res) => {
     if (req.files) {
         const cleanupPromises = req.files.map(async (file) => {
             try {
-                await fs.unlink(file.path);
+                // Use fs/promises for async unlinking
+                await fs.promises.unlink(file.path);
             } catch (cleanupErr) {
                 console.error(`Failed to delete file at ${file.path}:`, cleanupErr);
             }
