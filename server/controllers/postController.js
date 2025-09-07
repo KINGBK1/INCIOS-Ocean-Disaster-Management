@@ -1,80 +1,230 @@
 import Post from "../models/PostModel.js";
+
 import cloudinary from "../config/cloudinary.js";
 
+import axios from "axios";
+
+import fs from "fs";
+
+import FormData from "form-data"; // Import the form-data library
+
+
+
 // Create a new post
+
 export const createPost = async (req, res) => {
-  try {
-    const { content, location } = req.body;
 
-    // Validate content
-    if (!content) {
-      return res.status(400).json({ error: "Content is required" });
-    }
+try {
 
-    let uploadedFiles = [];
+const { content, location } = req.body;
 
-    // Handle file uploads (if any)
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(async (file) => {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: "posts",
-        });
+if (!content) return res.status(400).json({ error: "Content is required" });
 
-        return {
-          name: file.originalname,
-          type: file.mimetype.split("/")[0], // image, video, etc.
-          url: result.secure_url,
-        };
-      });
 
-      uploadedFiles = await Promise.all(uploadPromises);
-    }
 
-    // Create post
-    const newPost = new Post({
-      content,
-      files: uploadedFiles,
-      location,
-      user: req.user ? req.user.id : null,
-    });
+let uploadedFiles = [];
 
-    await newPost.save();
+let severityPrediction = false; // Default value
 
-    res.status(201).json(newPost);
-  } catch (err) {
-    console.error("Error creating post:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+let disasterName = "unknown"; // Default value
+
+
+
+// First, upload to Cloudinary to get URLs
+
+if (req.files?.length > 0) {
+
+const uploadPromises = req.files.map(async (file) => {
+
+const result = await cloudinary.uploader.upload(file.path, {
+
+folder: "posts",
+
+resource_type: "auto",
+
+});
+
+fs.unlinkSync(file.path); // cleanup local file
+
+
+
+return {
+
+name: file.originalname,
+
+type: file.mimetype.split("/")[0],
+
+url: result.secure_url,
+
 };
+
+});
+
+uploadedFiles = await Promise.all(uploadPromises);
+
+}
+
+
+
+// Call FastAPI ML model for prediction using the first image and the text
+
+const firstImageFile = req.files?.find(file => file.mimetype.startsWith('image/'));
+
+if (firstImageFile) {
+
+try {
+
+const formData = new FormData();
+
+formData.append("image", fs.createReadStream(firstImageFile.path), firstImageFile.originalname);
+
+formData.append("text", content);
+
+
+
+// Use the correct port (4000) from the FastAPI app
+
+const response = await axios.post("http://localhost:4000/predict", formData, {
+
+headers: formData.getHeaders(),
+
+});
+
+
+
+// Correctly map the prediction data to your schema fields
+
+const { predicted_damage, predicted_disaster } = response.data;
+
+severityPrediction = (predicted_damage === 'high' || predicted_damage === 'medium');
+
+disasterName = predicted_disaster;
+
+
+
+} catch (mlErr) {
+
+console.error("ML API error:", mlErr.message);
+
+// prediction remains the fallback value
+
+}
+
+}
+
+
+
+// After prediction, clean up the multer files
+
+if (req.files) {
+
+req.files.forEach(file => {
+
+if (fs.existsSync(file.path)) {
+
+fs.unlinkSync(file.path);
+
+}
+
+});
+
+}
+
+
+
+const newPost = new Post({
+
+content,
+
+files: uploadedFiles,
+
+location,
+
+severityPrediction,
+
+disasterName,
+
+user: req.user ? req.user.id : null,
+
+});
+
+
+
+await newPost.save();
+
+res.status(201).json(newPost);
+
+} catch (err) {
+
+console.error("Error creating post:", err.message);
+
+res.status(500).json({ error: "Server error while creating post" });
+
+}
+
+};
+
+
 
 export const getPosts = async (req, res) => {
-  try {
-    const posts = await Post.find().sort({ createdAt: -1 }); // latest first
-    res.json(posts);
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    res.status(500).json({ error: "Failed to fetch posts" });
-  }
+
+try {
+
+const posts = await Post.find().sort({ createdAt: -1 }); // latest first
+
+res.json(posts);
+
+} catch (error) {
+
+console.error("Error fetching posts:", error);
+
+res.status(500).json({ error: "Failed to fetch posts" });
+
+}
+
 };
+
+
 
 // Get single post by ID
+
 export const getPostById = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id).populate("user", "name email");
-    if (!post) return res.status(404).json({ error: "Post not found" });
-    res.json(post);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+
+try {
+
+const post = await Post.findById(req.params.id).populate("user", "name email");
+
+if (!post) return res.status(404).json({ error: "Post not found" });
+
+res.json(post);
+
+} catch (err) {
+
+res.status(500).json({ error: err.message });
+
+}
+
 };
 
+
+
 // Delete post
+
 export const deletePost = async (req, res) => {
-  try {
-    const post = await Post.findByIdAndDelete(req.params.id);
-    if (!post) return res.status(404).json({ error: "Post not found" });
-    res.json({ message: "Post deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+
+try {
+
+const post = await Post.findByIdAndDelete(req.params.id);
+
+if (!post) return res.status(404).json({ error: "Post not found" });
+
+res.json({ message: "Post deleted successfully" });
+
+} catch (err) {
+
+res.status(500).json({ error: err.message });
+
+}
+
 };
+
