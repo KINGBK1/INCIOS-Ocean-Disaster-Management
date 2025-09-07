@@ -1,7 +1,7 @@
 import Post from "../models/PostModel.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
-import fs from "fs/promises"; // Use fs.promises for async file operations
+import fs from "fs/promises"; 
 import FormData from "form-data"; 
 import path from 'path';
 
@@ -12,16 +12,13 @@ export const createPost = async (req, res) => {
     if (!content) return res.status(400).json({ error: "Content is required" });
 
     let uploadedFiles = [];
-    let severityPrediction = false; // Default value
-    let disasterName = "unknown"; // Default value
+    let severityPrediction = false; 
+    let disasterName = "unknown"; 
     
-    // Use a variable to store the local path of the first image file
     let firstImagePath = null;
 
-    // First, upload to Cloudinary to get URLs
     if (req.files?.length > 0) {
       const uploadPromises = req.files.map(async (file) => {
-        // Store the path of the first image for the ML prediction step
         if (!firstImagePath && file.mimetype.startsWith('image/')) {
             firstImagePath = file.path;
         }
@@ -55,24 +52,25 @@ export const createPost = async (req, res) => {
                 headers: formData.getHeaders(),
             });
 
-            // Correctly map the prediction data to your schema fields
             const { predicted_damage, predicted_disaster } = response.data;
             severityPrediction = (predicted_damage === 'high' || predicted_damage === 'medium');
             disasterName = predicted_disaster;
 
         } catch (mlErr) {
             console.error("ML API error:", mlErr.message);
-            // prediction remains the fallback value
         }
     }
 
     // After prediction, clean up the multer files
     if (req.files) {
-        req.files.forEach(file => {
-            if (fs.existsSync(file.path)) {
-                fs.unlinkSync(file.path);
+        const cleanupPromises = req.files.map(async (file) => {
+            try {
+                await fs.unlink(file.path);
+            } catch (cleanupErr) {
+                console.error(`Failed to delete file at ${file.path}:`, cleanupErr);
             }
         });
+        await Promise.all(cleanupPromises);
     }
     
     const newPost = new Post({
@@ -94,7 +92,7 @@ export const createPost = async (req, res) => {
 
 export const getPosts = async (req, res) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 }); // latest first
+    const posts = await Post.find().sort({ createdAt: -1 });
     res.json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -102,7 +100,6 @@ export const getPosts = async (req, res) => {
   }
 };
 
-// Get single post by ID
 export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).populate("user", "name email");
@@ -113,7 +110,6 @@ export const getPostById = async (req, res) => {
   }
 };
 
-// Delete post
 export const deletePost = async (req, res) => {
   try {
     const post = await Post.findByIdAndDelete(req.params.id);
