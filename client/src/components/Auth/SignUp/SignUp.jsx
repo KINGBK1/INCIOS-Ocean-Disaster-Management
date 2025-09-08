@@ -327,10 +327,10 @@ const SignUpPage = () => {
             {/* Google OAuth - only for regular users */}
             {userType === "user" && (
               <div className="oauth-section">
-                <div class="divider-container">
-                  <div class="line"></div>
-                  <span class="divider-text">or continue with</span>
-                  <div class="line"></div>
+                <div className="divider-container">
+                  <div className="line"></div>
+                  <span className="divider-text">or continue with</span>
+                  <div className="line"></div>
                 </div>
                 <div className="google-btn-wrapper">
                   <GoogleLogin

@@ -1,37 +1,36 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
-import { 
-  Menu, 
-  X, 
-  Home, 
-  Map, 
-  AlertTriangle, 
-  MessageSquare, 
-  Bell, 
-  Settings, 
-  User, 
-  LogOut, 
+import React, { useState, useRef, useEffect, useContext } from "react";
+import {
+  Menu,
+  X,
+  Home,
+  Map,
+  AlertTriangle,
+  MessageSquare,
+  Bell,
+  Settings,
+  User,
+  LogOut,
   ChevronDown,
   Shield,
-  Activity
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../Auth/context/AuthContext'; // Import AuthContext
-import './UserDashboardNav.css';
+  Activity,
+} from "lucide-react";
+import { useNavigate, Link, NavLink, useLocation } from "react-router-dom";
+import { AuthContext } from "../../Auth/context/AuthContext"; // Import AuthContext
+import "./UserDashboardNav.css";
 
 const UserDashboardNavbar = ({ user }) => {
   const navigate = useNavigate();
-  // Get the logout function from AuthContext
-  const { logout } = useContext(AuthContext); 
+  const { logout } = useContext(AuthContext);
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
   const profileRef = useRef(null);
-  
-  // Fallback user data
-  const safeUser = user || { 
-    name: "Guest User", 
-    email: "guest@example.com", 
-    avatar: null 
+
+  const safeUser = user || {
+    name: "Guest User",
+    email: "guest@example.com",
+    avatar: null,
   };
 
   // Close profile dropdown when clicking outside
@@ -42,8 +41,8 @@ const UserDashboardNavbar = ({ user }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleMenu = () => {
@@ -54,14 +53,13 @@ const UserDashboardNavbar = ({ user }) => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-  // 🔹 New, clean logout handler
   const handleLogout = () => {
-    logout(); // This clears the cookie and updates the state
-    navigate('/signin'); // Use a clean React Router redirect
+    logout();
+    navigate("/signin");
   };
 
   const handleProfile = () => {
-    console.log('Navigate to profile...');
+    console.log("Navigate to profile...");
     setIsProfileOpen(false);
   };
 
@@ -70,11 +68,11 @@ const UserDashboardNavbar = ({ user }) => {
   };
 
   const navItems = [
-    { name: 'Dashboard', icon: Home, href: '/dashboard', active: true },
-    { name: 'Live Map', icon: Map, href: '/map' },
-    { name: 'Alerts', icon: AlertTriangle, href: '/alerts' },
-    { name: 'Reports', icon: MessageSquare, href: '/reports' },
-    { name: 'Analytics', icon: Activity, href: '/analytics' },
+    { name: "Dashboard", icon: Home, href: "/dashboard" },
+    { name: "Live Map", icon: Map, href: "/map" },
+    { name: "Alerts", icon: AlertTriangle, href: "/alerts" },
+    { name: "Reports", icon: MessageSquare, href: "/reports" },
+    { name: "Analytics", icon: Activity, href: "/analytics" },
   ];
 
   return (
@@ -94,14 +92,16 @@ const UserDashboardNavbar = ({ user }) => {
         {/* Desktop Navigation */}
         <div className="navbar-menu desktop-menu">
           {navItems.map((item) => (
-            <a
+            <NavLink
               key={item.name}
-              href={item.href}
-              className={`nav-item ${item.active ? 'active' : ''}`}
+              to={item.href}
+              className={({ isActive }) =>
+                `nav-item ${isActive ? "active" : ""}`
+              }
             >
               <item.icon className="nav-icon" />
               <span className="nav-text">{item.name}</span>
-            </a>
+            </NavLink>
           ))}
         </div>
 
@@ -122,7 +122,11 @@ const UserDashboardNavbar = ({ user }) => {
             <button className="profile-btn" onClick={toggleProfile}>
               <div className="profile-avatar">
                 {safeUser?.avatar ? (
-                  <img src={safeUser.avatar} alt="Profile" className="avatar-img" />
+                  <img
+                    src={safeUser.avatar}
+                    alt="Profile"
+                    className="avatar-img"
+                  />
                 ) : (
                   <User className="avatar-icon" />
                 )}
@@ -131,15 +135,21 @@ const UserDashboardNavbar = ({ user }) => {
                 <span className="profile-name">{safeUser?.name}</span>
                 <span className="profile-role">Administrator</span>
               </div>
-              <ChevronDown className={`profile-arrow ${isProfileOpen ? 'open' : ''}`} />
+              <ChevronDown
+                className={`profile-arrow ${isProfileOpen ? "open" : ""}`}
+              />
             </button>
 
             {/* Profile Dropdown Menu */}
-            <div className={`profile-dropdown ${isProfileOpen ? 'open' : ''}`}>
+            <div className={`profile-dropdown ${isProfileOpen ? "open" : ""}`}>
               <div className="dropdown-header">
                 <div className="dropdown-avatar">
                   {safeUser?.avatar ? (
-                    <img src={safeUser.avatar} alt="Profile" className="dropdown-avatar-img" />
+                    <img
+                      src={safeUser.avatar}
+                      alt="Profile"
+                      className="dropdown-avatar-img"
+                    />
                   ) : (
                     <User className="dropdown-avatar-icon" />
                   )}
@@ -147,11 +157,12 @@ const UserDashboardNavbar = ({ user }) => {
                 <div className="dropdown-user-info">
                   <p className="dropdown-name">{safeUser?.name}</p>
                   <p className="dropdown-email">{safeUser?.email}</p>
+                
                 </div>
               </div>
-              
+
               <div className="dropdown-divider"></div>
-              
+
               <div className="dropdown-menu">
                 <button className="dropdown-item" onClick={handleProfile}>
                   <User className="dropdown-icon" />
@@ -172,30 +183,41 @@ const UserDashboardNavbar = ({ user }) => {
 
           {/* Mobile Menu Toggle */}
           <button className="mobile-menu-btn" onClick={toggleMenu}>
-            {isMenuOpen ? <X className="menu-icon" /> : <Menu className="menu-icon" />}
+            {isMenuOpen ? (
+              <X className="menu-icon" />
+            ) : (
+              <Menu className="menu-icon" />
+            )}
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation */}
-      <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+      <div className={`mobile-menu ${isMenuOpen ? "open" : ""}`}>
         <div className="mobile-menu-content">
           {navItems.map((item) => (
-            <a
+            <NavLink
               key={item.name}
-              href={item.href}
-              className={`mobile-nav-item ${item.active ? 'active' : ''}`}
+              to={item.href}
+              className={({ isActive }) =>
+                `mobile-nav-item ${isActive ? "active" : ""}`
+              }
               onClick={() => setIsMenuOpen(false)}
             >
               <item.icon className="mobile-nav-icon" />
               <span className="mobile-nav-text">{item.name}</span>
-            </a>
+            </NavLink>
           ))}
         </div>
       </div>
 
       {/* Overlay for mobile menu */}
-      {isMenuOpen && <div className="mobile-overlay" onClick={() => setIsMenuOpen(false)}></div>}
+      {isMenuOpen && (
+        <div
+          className="mobile-overlay"
+          onClick={() => setIsMenuOpen(false)}
+        ></div>
+      )}
     </nav>
   );
 };
