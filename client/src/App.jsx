@@ -20,7 +20,7 @@ const App = () => {
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
             
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-   
+   npm install
           </Routes>
         </Router>
       </AuthProvider>
