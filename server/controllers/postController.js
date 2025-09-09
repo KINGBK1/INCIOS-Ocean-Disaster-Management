@@ -47,7 +47,7 @@ export const createPost = async (req, res) => {
             formData.append("image", imageStream, firstImageFile.originalname);
             formData.append("text", content);
 
-            const response = await axios.post("http://localhost:4000/predict", formData, {
+            const response = await axios.post("http://127.0.0.1:4000/predict", formData, {
                 headers: formData.getHeaders(),
             });
 

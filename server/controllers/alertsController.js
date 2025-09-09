@@ -1,7 +1,7 @@
 import axios from "axios"
 
 // Call FastAPI backend
-const FASTAPI_URL = "http://localhost:8000/alerts";
+const FASTAPI_URL = "https://web-scraping-server-rdgi.onrender.com/alerts";
 
 export const getAlerts = async (req, res) => {
   try {
@@ -17,7 +17,7 @@ export const getAlerts = async (req, res) => {
 export const getPast90DaysAlerts = async (req, res) => {
   try {
  
-    const response = await axios.get("http://localhost:8000/past90daysalerts"); // getting the scraped past 90 days alert json data from fastapi server
+    const response = await axios.get("https://web-scraping-server-rdgi.onrender.com/past90daysalerts"); // getting the scraped past 90 days alert json data from fastapi server
 
     res.json(response.data);
   } catch (error) {
