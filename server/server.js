@@ -52,7 +52,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/disasters", mapRoutes);
 app.use("/api/posts", postRoutes);
-app.use("/api/coast", coastRoutes);
+app.use("/api/alerts", coastRoutes)
 app.use("/api/incois", incoisRoutes);
 
 // Error handling middleware
