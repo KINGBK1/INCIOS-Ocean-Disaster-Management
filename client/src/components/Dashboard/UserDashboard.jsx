@@ -1,27 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Circle, Popup, Marker } from "react-leaflet";
-import { Image, Video, Mic, MapPin, Send, X, Navigation } from "lucide-react";
+import { Image, Video, Mic, MapPin, Send, X } from "lucide-react";
 import { io } from "socket.io-client";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import L from 'leaflet';
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./UserDashboard.css";
 import Cookies from "js-cookie";
-// Removed unused imports like Camera, api
 import UserDashboardNavbar from "./Navbar/UserDashboardNav";
 
 // Fix default markers in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 // Custom icon for user location
 const userLocationIcon = L.divIcon({
-  className: 'custom-user-location-marker',
+  className: "custom-user-location-marker",
   html: `<div style="
     width: 20px; 
     height: 20px; 
@@ -49,7 +51,7 @@ const userLocationIcon = L.divIcon({
     }
   </style>`,
   iconSize: [20, 20],
-  iconAnchor: [10, 10]
+  iconAnchor: [10, 10],
 });
 
 const UserDashboard = () => {
@@ -61,21 +63,74 @@ const UserDashboard = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [posts, setPosts] = useState([]);
   const [user, setUser] = useState(null);
-  const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]); // Default India center
-  const [mapZoom, setMapZoom] = useState(5); // Start with a wider view of India
+  const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]); // India center
+  const [mapZoom, setMapZoom] = useState(5);
   const [locationError, setLocationError] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const mapRef = useRef(null);
   const navigate = useNavigate();
 
-  // Main effect for fetching data and setting up sockets
+  // ------------------ Helpers for severity zones ------------------
+  const parseLatLngFromLocation = (locationStr) => {
+    if (!locationStr || typeof locationStr !== "string") return null;
+    const numRegex = /-?\d+(?:\.\d+)?/g;
+    const matches = locationStr.match(numRegex);
+    if (!matches || matches.length < 2) return null;
+    const lng = parseFloat(matches[matches.length - 1]);
+    const lat = parseFloat(matches[matches.length - 2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    return null;
+  };
+
+  const buildSeverityZones = (
+    postsArray,
+    precision = 2,
+    dangerThreshold = 2
+  ) => {
+    const buckets = {};
+    postsArray.forEach((p) => {
+      const coords = parseLatLngFromLocation(p.location);
+      if (!coords) return;
+      const keyLat = Number(coords.lat.toFixed(precision));
+      const keyLng = Number(coords.lng.toFixed(precision));
+      const key = `${keyLat},${keyLng}`;
+      if (!buckets[key]) {
+        buckets[key] = { lat: keyLat, lng: keyLng, count: 0, severeCount: 0 };
+      }
+      buckets[key].count += 1;
+      if (p.severityPrediction) buckets[key].severeCount += 1;
+    });
+
+    return Object.values(buckets).map((b) => {
+      const radiusBase = 500; // meters
+      const maxRadius = 500000;
+      const radius = Math.min(
+        Math.round(radiusBase * Math.sqrt(b.count)),
+        maxRadius
+      );
+      let type = "safe";
+      if (b.severeCount >= dangerThreshold) type = "danger";
+      else if (b.severeCount > 0) type = "warning";
+      else type = "safe";
+      return {
+        lat: b.lat,
+        lng: b.lng,
+        radius,
+        type,
+        label: `Reports: ${b.count}${
+          b.severeCount ? ` • Severe: ${b.severeCount}` : ""
+        }`,
+      };
+    });
+  };
+  // ---------------------------------------------------------------
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = Cookies.get("token");
         if (!token) throw new Error("No token found");
-
         const res = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/auth/status`,
           {
@@ -103,10 +158,16 @@ const UserDashboard = () => {
 
     const fetchPosts = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/posts`
-        );
-        setPosts(res.data);
+        const apiUrl =
+          "https://incios-ocean-disaster-management.onrender.com/api/posts";
+        const res = await axios.get(apiUrl, { withCredentials: true });
+        const postsFromApi = Array.isArray(res.data) ? res.data : [];
+        setPosts(postsFromApi);
+        const computedZones = buildSeverityZones(postsFromApi, 2, 2);
+        setZones((prev) => {
+          const kept = prev ? prev.filter((z) => z.type === "coastline") : [];
+          return [...kept, ...computedZones];
+        });
       } catch (err) {
         console.error("Error fetching posts:", err);
       }
@@ -125,80 +186,59 @@ const UserDashboard = () => {
       transports: ["websocket", "polling"],
       withCredentials: true,
     });
-
-    socket.on("connect", () => console.log("Socket connected:", socket.id));
-    socket.on("disconnect", () => console.log("Socket disconnected"));
     socket.on("newPost", (newPost) => setPosts((prev) => [newPost, ...prev]));
     socket.on("zoneUpdate", (updatedZones) => setZones(updatedZones));
-
-    // **MODIFIED: Automatically get user location on component mount**
     getUserLocation();
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => socket.disconnect();
   }, [navigate]);
 
-  // **NEW: Effect to programmatically update the map's view when user location changes**
   useEffect(() => {
     if (mapRef.current && userLocation) {
       const map = mapRef.current;
-      // Smoothly fly to the user's location with a close zoom level
-      
       map.flyTo([userLocation.lat, userLocation.lng], 14);
     }
-  }, [userLocation]); // This effect runs whenever the userLocation state is updated
+  }, [userLocation]);
 
   const getUserLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by this browser.");
+      setLocationError("Geolocation not supported.");
       return;
     }
-
     setIsGettingLocation(true);
     setLocationError(null);
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 300000,
-    };
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        const newLocation = { lat: latitude, lng: longitude, accuracy: accuracy };
-
-        // **MODIFIED: This state update now triggers the new useEffect to move the map**
-        setUserLocation(newLocation);
+        setUserLocation({ lat: latitude, lng: longitude, accuracy });
         setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-        
         setIsGettingLocation(false);
-        console.log("User location found:", newLocation);
       },
       (error) => {
         setIsGettingLocation(false);
-        let errorMessage = "";
-        switch(error.code) {
-          case error.PERMISSION_DENIED: errorMessage = "Location access denied."; break;
-          case error.POSITION_UNAVAILABLE: errorMessage = "Location unavailable."; break;
-          case error.TIMEOUT: errorMessage = "Location request timed out."; break;
-          default: errorMessage = "Error getting location."; break;
-        }
-        setLocationError(errorMessage);
-        console.error("Error getting location:", error);
+        let msg = "Error getting location.";
+        if (error.code === error.PERMISSION_DENIED) msg = "Location denied.";
+        if (error.code === error.POSITION_UNAVAILABLE)
+          msg = "Location unavailable.";
+        if (error.code === error.TIMEOUT) msg = "Location timed out.";
+        setLocationError(msg);
       },
-      options
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   };
 
   const getZoneStyle = (type) => {
     switch (type) {
-      case "danger": return { color: "red", fillColor: "red", fillOpacity: 0.3 };
-      case "warning": return { color: "yellow", fillColor: "yellow", fillOpacity: 0.3 };
-      case "safe": return { color: "green", fillColor: "green", fillOpacity: 0.3 };
-      case "coastline": return { color: "blue", fillColor: "blue", fillOpacity: 0.3 };
-      default: return { color: "gray", fillColor: "gray", fillOpacity: 0.2 };
+      case "danger":
+        return { color: "red", fillColor: "red", fillOpacity: 0.3 };
+      case "warning":
+        return { color: "yellow", fillColor: "yellow", fillOpacity: 0.3 };
+      case "safe":
+        return { color: "green", fillColor: "green", fillOpacity: 0.3 };
+      case "coastline":
+        return { color: "blue", fillColor: "blue", fillOpacity: 0.3 };
+      default:
+        return { color: "gray", fillColor: "gray", fillOpacity: 0.2 };
     }
   };
 
@@ -213,30 +253,20 @@ const UserDashboard = () => {
     setSelectedFiles([...selectedFiles, ...fileObjects]);
   };
 
-  const removeFile = (index) => {
-    const newFiles = selectedFiles.filter((_, i) => i !== index);
-    setSelectedFiles(newFiles);
-  };
+  const removeFile = (index) =>
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
 
   const handlePost = async () => {
     if (!postContent.trim() && selectedFiles.length === 0) return;
     setIsPosting(true);
-
     try {
       const formData = new FormData();
       formData.append("content", postContent);
       formData.append("location", location);
-
       if (userLocation) {
-        formData.append("coordinates", JSON.stringify({
-          lat: userLocation.lat,
-          lng: userLocation.lng,
-          accuracy: userLocation.accuracy
-        }));
+        formData.append("coordinates", JSON.stringify(userLocation));
       }
-
       selectedFiles.forEach((f) => formData.append("files", f.file));
-
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/posts`,
         formData,
@@ -245,7 +275,6 @@ const UserDashboard = () => {
           withCredentials: true,
         }
       );
-
       setPostContent("");
       setSelectedFiles([]);
       setLocation("");
@@ -255,70 +284,77 @@ const UserDashboard = () => {
       setIsPosting(false);
     }
   };
-  
+
   return (
     <div className="dashboard-container">
       <nav>
         <UserDashboardNavbar user={user} />
       </nav>
-
       <div className="main-content">
         <div className="content-grid">
           <div className="map-section">
             <div className="map-container">
               <div className="section-header">
-                <h2 className="section-title">🌍 Live Disaster & Coastline Threats</h2>
-                <div className="location-controls">
-                  {/* <button
-                    onClick={getUserLocation}
-                    disabled={isGettingLocation}
-                    className="location-button-map"
-                    title="Center map on my location"
-                  >
-                    {isGettingLocation ? <div className="loading-spinner-small" /> : <Navigation className="button-icon" />}
-                    {isGettingLocation ? "Getting..." : "My Location"}
-                  </button> */}
-                  {locationError && <div className="location-error"><small>{locationError}</small></div>}
-                </div>
+                <h2 className="section-title">
+                  🌍 Live Disaster & Severity Zones
+                </h2>
+                {locationError && (
+                  <div className="location-error">
+                    <small>{locationError}</small>
+                  </div>
+                )}
               </div>
               <div className="map-wrapper">
-                <MapContainer 
+                <MapContainer
                   ref={mapRef}
-                  center={mapCenter} // Sets the initial view before location is found
-                  zoom={mapZoom}     // Sets the initial zoom
+                  center={mapCenter}
+                  zoom={mapZoom}
                   style={{ height: "100%", width: "100%" }}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
                   />
-                  
                   {zones.map((zone, index) => (
-                    <Circle key={index} center={[zone.lat, zone.lng]} radius={zone.radius} pathOptions={getZoneStyle(zone.type)}>
+                    <Circle
+                      key={index}
+                      center={[zone.lat, zone.lng]}
+                      radius={zone.radius}
+                      pathOptions={getZoneStyle(zone.type)}
+                    >
                       <Popup>
-                        {zone.type === "danger" && "🚨 Danger Prone Zone"}
+                        {zone.type === "danger" && "🚨 Danger Zone"}
                         {zone.type === "warning" && "⚠️ Warning Zone"}
                         {zone.type === "safe" && "✅ Safe Zone"}
-                        {zone.type === "coastline" && `🌊 Coastline Threat: ${zone.label}`}
+                        {zone.label && <div>{zone.label}</div>}
                       </Popup>
                     </Circle>
                   ))}
-                  
                   {userLocation && (
                     <>
-                      <Marker position={[userLocation.lat, userLocation.lng]} icon={userLocationIcon}>
+                      <Marker
+                        position={[userLocation.lat, userLocation.lng]}
+                        icon={userLocationIcon}
+                      >
                         <Popup>
-                          <div className="user-location-popup">
+                          <div>
                             <h4>📍 Your Location</h4>
-                            <p><strong>Coordinates:</strong> {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}</p>
-                            <p><strong>Accuracy:</strong> ±{Math.round(userLocation.accuracy)}m</p>
+                            <p>
+                              {userLocation.lat.toFixed(6)},{" "}
+                              {userLocation.lng.toFixed(6)}
+                            </p>
+                            <p>±{Math.round(userLocation.accuracy)}m</p>
                           </div>
                         </Popup>
                       </Marker>
                       <Circle
                         center={[userLocation.lat, userLocation.lng]}
                         radius={userLocation.accuracy}
-                        pathOptions={{ color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, weight: 1, dashArray: '5,5' }}
+                        pathOptions={{
+                          color: "#007bff",
+                          fillOpacity: 0.1,
+                          dashArray: "5,5",
+                        }}
                       />
                     </>
                   )}
@@ -326,99 +362,64 @@ const UserDashboard = () => {
               </div>
             </div>
           </div>
-
-          <div className="social-section">
-            <div className="create-post-container">
-              <div className="section-header">
-                <h2 className="section-title">📢 Report Disaster</h2>
-                <p className="section-subtitle">Share updates, images, and location</p>
-              </div>
-
-              <div className="post-form">
-                <textarea
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                  placeholder="What's happening? Describe the situation..."
-                  className="post-textarea"
-                  rows="4"
-                />
-
-                {selectedFiles.length > 0 && (
-                  <div className="file-preview-section">
-                    <p className="file-preview-title">Attached files:</p>
-                    <div className="file-preview-grid">
-                      {selectedFiles.map((fileObj, index) => (
-                        <div key={index} className="file-preview-item">
-                          {fileObj.type === "image" && <img src={fileObj.url} alt={fileObj.name} className="preview-image" />}
-                          {fileObj.type === "video" && <div className="preview-placeholder"><Video className="placeholder-icon" /></div>}
-                          {fileObj.type === "audio" && <div className="preview-placeholder"><Mic className="placeholder-icon" /></div>}
-                          <button onClick={() => removeFile(index)} className="remove-file-btn"><X className="remove-icon" /></button>
-                          <p className="file-name">{fileObj.name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {location && (
-                  <div className="location-display">
-                    <MapPin className="location-icon" />
-                    <span>{location}</span>
-                    {userLocation && <small className="location-accuracy">(±{Math.round(userLocation.accuracy)}m accuracy)</small>}
-                  </div>
-                )}
-
-                <div className="action-buttons">
-                  <div className="media-buttons">
-                    <label className="media-button">
-                      <input type="file" multiple accept="image/*,video/*,audio/*" onChange={handleFileSelect} className="file-input" />
-                      <div className="button-content"><Image className="button-icon" /><span>Media</span></div>
-                    </label>
-                    <button onClick={getUserLocation} disabled={isGettingLocation} className="location-button">
-                      {isGettingLocation ? <div className="loading-spinner-small" /> : <MapPin className="button-icon" />}
-                      <span>{isGettingLocation ? "Getting..." : "Location"}</span>
-                    </button>
-                  </div>
-                  <button onClick={handlePost} disabled={isPosting || (!postContent.trim() && selectedFiles.length === 0)} className="post-button">
-                    {isPosting ? <div className="loading-spinner" /> : <Send className="button-icon" />}
-                    <span>{isPosting ? "Posting..." : "Post"}</span>
-                  </button>
-                </div>
-              </div>
+       <div className="social-section">
+  <div className="create-post-container">
+    <div className="section-header">
+      <h2 className="section-title">📢 Report Disaster</h2>
+      <p className="section-subtitle">
+        Share updates, images, and location
+      </p>
+    </div>
+    <div className="post-form">
+      <textarea
+        value={postContent}
+        onChange={(e) => setPostContent(e.target.value)}
+        placeholder="What's happening?"
+        className="post-textarea"
+        rows="4"
+      />
+      {selectedFiles.length > 0 && (
+        <div className="file-preview-grid">
+          {selectedFiles.map((f, i) => (
+            <div key={i} className="file-preview-item">
+              {f.type === "image" && <img src={f.url} alt={f.name} />}
+              {f.type === "video" && <Video />}
+              {f.type === "audio" && <Mic />}
+              <button onClick={() => removeFile(i)}>
+                <X />
+              </button>
             </div>
+          ))}
+        </div>
+      )}
+      {location && (
+        <div className="location-display">
+          <MapPin />
+          <span>{location}</span>
+        </div>
+      )}
+      <div className="action-buttons">
+        <label className="media-button">
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*,audio/*"
+            onChange={handleFileSelect}
+          />
+          <Image />
+          <span>Media</span>
+        </label>
+        <button onClick={getUserLocation} disabled={isGettingLocation}>
+          <MapPin /> {isGettingLocation ? "Getting..." : "Location"}
+        </button>
+        <button onClick={handlePost} disabled={isPosting}>
+          <Send /> {isPosting ? "Posting..." : "Post"}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-            <div className="recent-posts-container">
-              <div className="section-header">
-                <h3 className="section-title">📰 Recent Reports</h3>
-              </div>
-              <div className="posts-feed">
-                {posts.length === 0 ? (
-                  <div className="no-posts"><p>No reports yet. Be the first to share an update!</p></div>
-                ) : (
-                  posts.map((post) => (
-                    <div key={post._id || post.id} className="post-item">
-                      <div className="post-content">
-                        {post.content && <p className="post-text">{post.content}</p>}
-                        {post.files?.length > 0 && (
-                          <div className="post-media-grid">
-                            {post.files.slice(0, 4).map((fileObj, index) => (
-                              <div key={index} className="post-media-item">
-                                {fileObj.type === "image" && <img src={fileObj.url} alt={fileObj.name} className="post-image" />}
-                                {fileObj.type === "video" && <div className="post-media-placeholder"><Video className="media-icon" /></div>}
-                                {fileObj.type === "audio" && <div className="post-media-placeholder"><Mic className="media-icon" /></div>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {post.location && <div className="post-location"><MapPin className="location-icon-small" /><span>{post.location}</span></div>}
-                        <div className="post-timestamp">{new Date(post.createdAt || Date.now()).toLocaleString()}</div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
