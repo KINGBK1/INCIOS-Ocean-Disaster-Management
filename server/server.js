@@ -18,6 +18,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
   "http://localhost:5173",
   "https://incios-ocean-disaster-management.onrender.com",
+  "https://incios-ocean-disaster-management.vercel.app",
 ];
 
 // Socket.io setup with CORS
