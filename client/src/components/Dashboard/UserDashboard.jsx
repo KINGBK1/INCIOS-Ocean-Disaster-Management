@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Circle, Popup, Marker } from "react-leaflet";
 import { Image, Video, Mic, MapPin, Send, X } from "lucide-react";
 import { io } from "socket.io-client";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./UserDashboard.css";
 import Cookies from "js-cookie";
 import UserDashboardNavbar from "./Navbar/UserDashboardNav";
+import { CircleMarker } from "react-leaflet";
 
 // Fix default markers in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -67,6 +67,7 @@ const UserDashboard = () => {
   const [mapZoom, setMapZoom] = useState(5);
   const [locationError, setLocationError] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [coastlineAlerts, setCoastlineAlerts] = useState([]);
 
   const mapRef = useRef(null);
   const navigate = useNavigate();
@@ -124,6 +125,77 @@ const UserDashboard = () => {
       };
     });
   };
+
+  // NEW: Fetch coastline alerts from MongoDB
+  const fetchCoastlineAlerts = async () => {
+    try {
+      const token = Cookies.get("token");
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/alerts/coastline-alerts?limit=100`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.success && data.coastlineAlerts) {
+        const alertZones = data.coastlineAlerts.map(alert => ({
+          lat: alert.lat,
+          lng: alert.lng,
+          radius: alert.radius,
+          type: 'coastline',
+          alertType: alert.alertType,
+          color: alert.color,
+          state: alert.state,
+          district: alert.district,
+          message: alert.message,
+          issueDate: alert.issueDate,
+          objectId: alert.objectId,
+          popupContent: alert.popupContent
+        }));
+        
+        setCoastlineAlerts(alertZones);
+        console.log(`Loaded ${alertZones.length} coastline alerts`);
+      }
+    } catch (err) {
+      console.error("Error fetching coastline alerts:", err);
+    }
+  };
+
+  // Get coastline alert style based on alert type and color
+  const getCoastlineStyle = (alert) => {
+    const baseStyle = { fillOpacity: 0.4, weight: 2 };
+    
+    // Use color from alert data
+    if (alert.color) {
+      const colorMap = {
+        'Yellow': '#FFD700',
+        'Orange': '#FFA500', 
+        'Red': '#FF0000',
+        'Green': '#008000',
+        'Blue': '#0000FF'
+      };
+      
+      const color = colorMap[alert.color] || '#0000FF';
+      return { ...baseStyle, color, fillColor: color };
+    }
+    
+    // Fallback to alert type
+    switch (alert.alertType?.toUpperCase()) {
+      case 'HIGH WAVE WATCH':
+        return { ...baseStyle, color: '#FFA500', fillColor: '#FFA500' };
+      case 'STORM SURGE WATCH':
+        return { ...baseStyle, color: '#FF0000', fillColor: '#FF0000' };
+      default:
+        return { ...baseStyle, color: '#0000FF', fillColor: '#0000FF' };
+    }
+  };
   // ---------------------------------------------------------------
 
   useEffect(() => {
@@ -131,14 +203,19 @@ const UserDashboard = () => {
       try {
         const token = Cookies.get("token");
         if (!token) throw new Error("No token found");
-        const res = await axios.get(
+        const res = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/api/auth/status`,
           {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
           }
         );
-        setUser(res.data.user);
+        const data = await res.json();
+        setUser(data.user);
       } catch (err) {
         console.error("Error fetching user:", err);
         navigate("/signin");
@@ -147,10 +224,15 @@ const UserDashboard = () => {
 
     const fetchZones = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/disasters/zones`
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/disasters/zones`,
+          {
+            method: 'GET',
+            credentials: 'include',
+          }
         );
-        setZones(res.data);
+        const data = await res.json();
+        setZones(data);
       } catch (err) {
         console.error("Error fetching zones:", err);
       }
@@ -160,8 +242,12 @@ const UserDashboard = () => {
       try {
         const apiUrl =
           "https://incios-ocean-disaster-management.onrender.com/api/posts";
-        const res = await axios.get(apiUrl, { withCredentials: true });
-        const postsFromApi = Array.isArray(res.data) ? res.data : [];
+        const res = await fetch(apiUrl, { 
+          method: 'GET',
+          credentials: 'include' 
+        });
+        const data = await res.json();
+        const postsFromApi = Array.isArray(data) ? data : [];
         setPosts(postsFromApi);
         const computedZones = buildSeverityZones(postsFromApi, 2, 2);
         setZones((prev) => {
@@ -176,6 +262,7 @@ const UserDashboard = () => {
     fetchUser();
     fetchZones();
     fetchPosts();
+    fetchCoastlineAlerts(); // NEW: Fetch coastline alerts
 
     const backendURL =
       import.meta.env.MODE === "production"
@@ -267,23 +354,34 @@ const UserDashboard = () => {
         formData.append("coordinates", JSON.stringify(userLocation));
       }
       selectedFiles.forEach((f) => formData.append("files", f.file));
-      await axios.post(
+      
+      const token = Cookies.get("token");
+      const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/posts`,
-        formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+          credentials: 'include',
         }
       );
-      setPostContent("");
-      setSelectedFiles([]);
-      setLocation("");
+      
+      if (response.ok) {
+        setPostContent("");
+        setSelectedFiles([]);
+        setLocation("");
+      }
     } catch (err) {
       console.error("Error posting:", err);
     } finally {
       setIsPosting(false);
     }
   };
+
+  // Combine all zones for display
+  const allZones = [...zones, ...coastlineAlerts];
 
   return (
     <div className="dashboard-container">
@@ -296,13 +394,25 @@ const UserDashboard = () => {
             <div className="map-container">
               <div className="section-header">
                 <h2 className="section-title">
-                  🌍 Live Disaster & Severity Zones
+                  🌍 Live Disaster & Coastline Alert Zones
                 </h2>
                 {locationError && (
                   <div className="location-error">
                     <small>{locationError}</small>
                   </div>
                 )}
+                {/* NEW: Alert Statistics */}
+                <div className="alert-stats">
+                  <span className="stat-item">
+                    📊 Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
+                  </span>
+                  <span className="stat-item">
+                    🚨 Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
+                  </span>
+                  <span className="stat-item">
+                    ⚠️ Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
+                  </span>
+                </div>
               </div>
               <div className="map-wrapper">
                 <MapContainer
@@ -315,21 +425,67 @@ const UserDashboard = () => {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
                   />
+                  
+                  {/* Render severity zones */}
                   {zones.map((zone, index) => (
                     <Circle
-                      key={index}
+                      key={`severity-zone-${index}`}
                       center={[zone.lat, zone.lng]}
                       radius={zone.radius}
                       pathOptions={getZoneStyle(zone.type)}
                     >
                       <Popup>
-                        {zone.type === "danger" && "🚨 Danger Zone"}
-                        {zone.type === "warning" && "⚠️ Warning Zone"}
-                        {zone.type === "safe" && "✅ Safe Zone"}
-                        {zone.label && <div>{zone.label}</div>}
+                        <div>
+                          {zone.type === "danger" && "🚨 Danger Zone"}
+                          {zone.type === "warning" && "⚠️ Warning Zone"}
+                          {zone.type === "safe" && "✅ Safe Zone"}
+                          {zone.label && <div>{zone.label}</div>}
+                        </div>
                       </Popup>
                     </Circle>
                   ))}
+                  
+                  {/* NEW: Render coastline alerts */}
+                  {coastlineAlerts.map((alert, index) => (
+                    <Circle
+                      key={`coastline-alert-${index}`}
+                      center={[alert.lat, alert.lng]}
+                      radius={alert.radius}
+                      pathOptions={getCoastlineStyle(alert)}
+                    >
+                      <Popup>
+                        <div className="coastline-popup">
+                          <h4 style={{ color: '#1e40af', marginBottom: '8px', fontSize: '16px' }}>
+                            🌊 {alert.alertType || 'Coastline Alert'}
+                          </h4>
+                          <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
+                            <p><strong>State:</strong> {alert.state || 'N/A'}</p>
+                            <p><strong>District:</strong> {alert.district || 'N/A'}</p>
+                            <p><strong>Message:</strong> {alert.message || 'No message'}</p>
+                            <p><strong>Issue Date:</strong> {alert.issueDate || 'N/A'}</p>
+                            <p><strong>Color Code:</strong> 
+                              <span style={{ 
+                                backgroundColor: alert.color === 'Yellow' ? '#FFD700' : 
+                                                alert.color === 'Orange' ? '#FFA500' :
+                                                alert.color === 'Red' ? '#FF0000' : 
+                                                alert.color === 'Green' ? '#008000' : '#0000FF',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                marginLeft: '4px',
+                                fontSize: '12px'
+                              }}>
+                                {alert.color || 'Blue'}
+                              </span>
+                            </p>
+                            {alert.objectId && <p><strong>ID:</strong> {alert.objectId}</p>}
+                          </div>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  ))}
+                  
+                  {/* User location */}
                   {userLocation && (
                     <>
                       <Marker
@@ -360,66 +516,93 @@ const UserDashboard = () => {
                   )}
                 </MapContainer>
               </div>
+              
+              {/* NEW: Enhanced Legend */}
+              <div className="map-legend">
+                <div className="legend-title">Map Legend:</div>
+                <div className="legend-items">
+                  <div className="legend-item">
+                    <div className="legend-color" style={{ backgroundColor: '#ff0000' }}></div>
+                    <span>Danger Zone</span>
+                  </div>
+                  <div className="legend-item">
+                    <div className="legend-color" style={{ backgroundColor: '#ffff00' }}></div>
+                    <span>Warning Zone</span>
+                  </div>
+                  <div className="legend-item">
+                    <div className="legend-color" style={{ backgroundColor: '#00ff00' }}></div>
+                    <span>Safe Zone</span>
+                  </div>
+                  <div className="legend-item">
+                    <div className="legend-color" style={{ backgroundColor: '#0000ff' }}></div>
+                    <span>Coastline Alert</span>
+                  </div>
+                  <div className="legend-item">
+                    <div className="legend-color user-marker"></div>
+                    <span>Your Location</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-       <div className="social-section">
-  <div className="create-post-container">
-    <div className="section-header">
-      <h2 className="section-title">📢 Report Disaster</h2>
-      <p className="section-subtitle">
-        Share updates, images, and location
-      </p>
-    </div>
-    <div className="post-form">
-      <textarea
-        value={postContent}
-        onChange={(e) => setPostContent(e.target.value)}
-        placeholder="What's happening?"
-        className="post-textarea"
-        rows="4"
-      />
-      {selectedFiles.length > 0 && (
-        <div className="file-preview-grid">
-          {selectedFiles.map((f, i) => (
-            <div key={i} className="file-preview-item">
-              {f.type === "image" && <img src={f.url} alt={f.name} />}
-              {f.type === "video" && <Video />}
-              {f.type === "audio" && <Mic />}
-              <button onClick={() => removeFile(i)}>
-                <X />
-              </button>
+          
+          <div className="social-section">
+            <div className="create-post-container">
+              <div className="section-header">
+                <h2 className="section-title">📢 Report Disaster</h2>
+                <p className="section-subtitle">
+                  Share updates, images, and location
+                </p>
+              </div>
+              <div className="post-form">
+                <textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder="What's happening?"
+                  className="post-textarea"
+                  rows="4"
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="file-preview-grid">
+                    {selectedFiles.map((f, i) => (
+                      <div key={i} className="file-preview-item">
+                        {f.type === "image" && <img src={f.url} alt={f.name} />}
+                        {f.type === "video" && <Video />}
+                        {f.type === "audio" && <Mic />}
+                        <button onClick={() => removeFile(i)}>
+                          <X />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {location && (
+                  <div className="location-display">
+                    <MapPin />
+                    <span>{location}</span>
+                  </div>
+                )}
+                <div className="action-buttons">
+                  <label className="media-button">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,audio/*"
+                      onChange={handleFileSelect}
+                    />
+                    <Image />
+                    <span>Media</span>
+                  </label>
+                  <button onClick={getUserLocation} disabled={isGettingLocation}>
+                    <MapPin /> {isGettingLocation ? "Getting..." : "Location"}
+                  </button>
+                  <button onClick={handlePost} disabled={isPosting}>
+                    <Send /> {isPosting ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
-      {location && (
-        <div className="location-display">
-          <MapPin />
-          <span>{location}</span>
-        </div>
-      )}
-      <div className="action-buttons">
-        <label className="media-button">
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*,audio/*"
-            onChange={handleFileSelect}
-          />
-          <Image />
-          <span>Media</span>
-        </label>
-        <button onClick={getUserLocation} disabled={isGettingLocation}>
-          <MapPin /> {isGettingLocation ? "Getting..." : "Location"}
-        </button>
-        <button onClick={handlePost} disabled={isPosting}>
-          <Send /> {isPosting ? "Posting..." : "Post"}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
+          </div>
         </div>
       </div>
     </div>
