@@ -11,23 +11,18 @@ export const createPost = async (req, res) => {
     if (!content) return res.status(400).json({ error: "Content is required" });
 
     let uploadedFiles = [];
-    let severityPrediction = false; 
-    let disasterName = "unknown"; 
-    
+    let severity = "non_disaster"; // default severity
     let firstImageFile = null;
 
     if (req.files?.length > 0) {
       const uploadPromises = req.files.map(async (file) => {
-        if (!firstImageFile && file.mimetype.startsWith('image/')) {
-            firstImageFile = file;
-        }
+        if (!firstImageFile && file.mimetype.startsWith("image/")) firstImageFile = file;
 
-        // We use the synchronous `fs` here for Cloudinary, which is fine
         const result = await cloudinary.uploader.upload(file.path, {
           folder: "posts",
           resource_type: "auto",
         });
-        
+
         return {
           name: file.originalname,
           type: file.mimetype.split("/")[0],
@@ -36,49 +31,35 @@ export const createPost = async (req, res) => {
       });
       uploadedFiles = await Promise.all(uploadPromises);
     }
-    
-    // Call FastAPI ML model for prediction using the first image and the text
+
+    // Call FastAPI ML server
     if (firstImageFile) {
-        try {
-            const formData = new FormData();
-            
-            // Use createReadStream for better compatibility with form-data
-            const imageStream = fs.createReadStream(firstImageFile.path);
-            formData.append("image", imageStream, firstImageFile.originalname);
-            formData.append("text", content);
+      try {
+        const formData = new FormData();
+        formData.append("post", content);
+        const imageStream = fs.createReadStream(firstImageFile.path);
+        formData.append("image", imageStream, firstImageFile.originalname);
 
-            const response = await axios.post("http://127.0.0.1:4000/predict", formData, {
-                headers: formData.getHeaders(),
-            });
-
-            const { predicted_damage, predicted_disaster } = response.data;
-            severityPrediction = (predicted_damage === 'severe_damage');
-            disasterName = predicted_disaster;
-
-        } catch (mlErr) {
-            console.error("ML API error:", mlErr.message);
-        }
-    }
-
-    // After prediction, clean up the multer files
-    if (req.files) {
-        const cleanupPromises = req.files.map(async (file) => {
-            try {
-                // Use fs/promises for async unlinking
-                await fs.promises.unlink(file.path);
-            } catch (cleanupErr) {
-                console.error(`Failed to delete file at ${file.path}:`, cleanupErr);
-            }
+        const response = await axios.post("https://disaster-classifier-kjj7.onrender.com/predict", formData, {
+          headers: formData.getHeaders(),
         });
-        await Promise.all(cleanupPromises);
+
+        severity = response.data.severity;
+      } catch (mlErr) {
+        console.error("ML API error:", mlErr.message);
+      }
     }
-    
+
+    // Clean up multer temp files
+    if (req.files) {
+      await Promise.all(req.files.map(file => fs.promises.unlink(file.path).catch(() => {})));
+    }
+
     const newPost = new Post({
       content,
       files: uploadedFiles,
       location,
-      severityPrediction,
-      disasterName,
+      severityPrediction: severity,
       user: req.user ? req.user.id : null,
     });
 
