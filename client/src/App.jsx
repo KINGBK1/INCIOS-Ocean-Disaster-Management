@@ -9,6 +9,7 @@ import Reports from './components/Reports/Reports';
 import { AuthProvider } from './components/Auth/context/AuthContext';
 import LiveMap from './components/Map/LiveMap';
 import Alerts from './components/Alerts/Alerts';
+import ProfileSettings from './components/Profile/ProfileSettings';
 
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
             <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/profile-settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
           </Routes>
         </Router>
       </AuthProvider>

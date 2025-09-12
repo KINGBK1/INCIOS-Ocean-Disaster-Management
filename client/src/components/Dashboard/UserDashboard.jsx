@@ -1,6 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Circle, Popup, Marker } from "react-leaflet";
-import { Image, Video, Mic, MapPin, Send, X } from "lucide-react";
+import { 
+  Image, 
+  Video, 
+  Mic, 
+  MapPin, 
+  Send, 
+  X, 
+  Globe,
+  BarChart3,
+  AlertTriangle,
+  ShieldAlert,
+  CheckCircle,
+  Waves,
+  Megaphone,
+  ChevronDown,
+  ArrowDown
+} from "lucide-react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
@@ -69,6 +85,7 @@ const UserDashboard = () => {
   const [locationError, setLocationError] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [coastlineAlerts, setCoastlineAlerts] = useState([]);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const mapRef = useRef(null);
   const navigate = useNavigate();
@@ -367,6 +384,38 @@ const UserDashboard = () => {
     };
   }, []);
 
+  // Mobile scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        const scrolled = window.scrollY > 300;
+        setShowScrollButton(scrolled);
+      } else {
+        setShowScrollButton(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+    handleScroll(); // Check initial state
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
+  const scrollToContent = () => {
+    const socialSection = document.querySelector('.social-section');
+    if (socialSection) {
+      socialSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   const getUserLocation = () => {
     if (!navigator.geolocation) {
       setLocationError("Geolocation not supported.");
@@ -473,7 +522,8 @@ const UserDashboard = () => {
           <div className="map-section">
             <div className="section-header">
               <h2 className="section-title">
-                🌍 Live Disaster & Coastline Alert Zones
+                <Globe className="section-icon" />
+                Live Disaster & Coastline Alert Zones
               </h2>
               {locationError && (
                 <div className="location-error">
@@ -482,13 +532,13 @@ const UserDashboard = () => {
               )}
               <div className="alert-stats">
                 <span className="stat-item">
-                  📊 Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
+                  <BarChart3 className="stat-icon-user" style={{color: '#10b981'}} /> Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
                 </span>
                 <span className="stat-item">
-                  🚨 Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
+                  <ShieldAlert className="stat-icon-user" style={{color: '#ef4444'}} /> Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
                 </span>
                 <span className="stat-item">
-                  ⚠️ Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
+                  <AlertTriangle className="stat-icon-user" style={{color: '#f59e0b'}} /> Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
                 </span>
               </div>
             </div>
@@ -515,9 +565,9 @@ const UserDashboard = () => {
                     >
                       <Popup>
                         <div>
-                          {zone.type === "danger" && "🚨 Danger Zone"}
-                          {zone.type === "warning" && "⚠️ Warning Zone"}
-                          {zone.type === "safe" && "✅ Safe Zone"}
+                          {zone.type === "danger" && <><ShieldAlert size={16} style={{color: '#ef4444', display: 'inline', marginRight: '4px'}} /> Danger Zone</>}
+                          {zone.type === "warning" && <><AlertTriangle size={16} style={{color: '#f59e0b', display: 'inline', marginRight: '4px'}} /> Warning Zone</>}
+                          {zone.type === "safe" && <><CheckCircle size={16} style={{color: '#10b981', display: 'inline', marginRight: '4px'}} /> Safe Zone</>}
                           {zone.label && <div>{zone.label}</div>}
                         </div>
                       </Popup>
@@ -534,8 +584,8 @@ const UserDashboard = () => {
                     >
                       <Popup>
                         <div className="coastline-popup">
-                          <h4 style={{ color: '#1e40af', marginBottom: '8px', fontSize: '16px' }}>
-                            🌊 {alert.alertType || 'Coastline Alert'}
+                          <h4 style={{ color: '#1e40af', marginBottom: '8px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Waves size={16} /> {alert.alertType || 'Coastline Alert'}
                           </h4>
                           <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
                             <p><strong>State:</strong> {alert.state || 'N/A'}</p>
@@ -573,7 +623,9 @@ const UserDashboard = () => {
                       >
                         <Popup>
                           <div>
-                            <h4>📍 Your Location</h4>
+                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px 0' }}>
+                              <MapPin size={16} /> Your Location
+                            </h4>
                             <p>
                               {userLocation.lat.toFixed(6)},{" "}
                               {userLocation.lng.toFixed(6)}
@@ -628,7 +680,10 @@ const UserDashboard = () => {
           <div className="social-section">
             <div className="create-post-container">
               <div className="section-header">
-                <h2 className="section-title">📢 Report Disaster</h2>
+                <h2 className="section-title">
+                  <Megaphone className="section-icon" />
+                  Report Disaster
+                </h2>
                 <p className="section-subtitle">
                   Share updates, images, and location
                 </p>
@@ -684,6 +739,18 @@ const UserDashboard = () => {
           </div>
         </div>
       </div>
+      
+      {/* Mobile Scroll Button */}
+      {showScrollButton && (
+        <button 
+          className={`mobile-scroll-button ${showScrollButton ? 'show' : ''}`}
+          onClick={scrollToContent}
+          aria-label="Scroll to content"
+        >
+          <ArrowDown />
+        </button>
+      )}
+      
       <Footer />
     </div>
   );

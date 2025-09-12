@@ -5,6 +5,7 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 import authRoutes from "./routes/AuthRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import mapRoutes from "./routes/mapRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import coastRoutes from "./routes/coastRoutes.js";
@@ -53,6 +54,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/disasters", mapRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/alerts", coastRoutes)
@@ -64,14 +66,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-// DB Connection
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => {
-    console.error("MongoDB connection failed:", err);
-    process.exit(1);
-  });
+// DB Connection (temporarily disabled for testing)
+console.log("⚠️  MongoDB connection temporarily disabled for testing");
+// mongoose
+//   .connect(process.env.MONGODB_URI)
+//   .then(() => console.log("MongoDB Connected"))
+//   .catch((err) => {
+//     console.error("MongoDB connection failed:", err);
+//     process.exit(1);
+//   });
 
 // Root API check
 app.get("/", (req, res) => {

@@ -13,11 +13,16 @@ router.get("/status", authMiddleware, (req, res) => {
     id: user._id,
     name: user.username,
     email: user.email,
+    phone: user.phone,
+    location: user.location,
+    bio: user.bio,
     avatar: user.picture || null,
     role: user.role,
     officialId: user.officialId,
-    location: user.location,
-    isApproved: user.isApproved
+    isApproved: user.isApproved,
+    preferences: user.preferences,
+    createdAt: user.createdAt,
+    lastLogin: user.lastLogin
   };
   res.json({ success: true, user: userData });
 });

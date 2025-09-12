@@ -4,17 +4,17 @@ import {
   Shield,
   Building,
   MapPin,
-  Check,
-  AlertTriangle,
   Eye,
   EyeOff,
   Briefcase,
 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import "./SignUp.css"; // The new CSS file will be much more extensive
+import "./SignUp.css";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../Auth/context/AuthContext";
+import TriColorAnimation from "../TriColorAnimation/TriColorAnimation";
+import nightImage from "../../../assets/night-mountain-city.jpg";
 
 const SignUpPage = () => {
   const navigate = useNavigate();
@@ -31,6 +31,8 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [userName, setUserName] = useState("");
 
   const userTypes = [
     { value: "admin", label: "Admin", icon: Shield, color: "admin" },
@@ -101,9 +103,10 @@ const SignUpPage = () => {
         payload
       );
 
-      alert(res.data.message || "Account created successfully!");
+      // Set user name and show animation
+      setUserName(res.data.user?.name || formData.username || "New User");
       login(res.data.token);
-      navigate("/dashboard");
+      setShowAnimation(true);
     } catch (err) {
       console.error(err.response?.data || err.message);
       alert("Error creating account.");
@@ -117,8 +120,11 @@ const SignUpPage = () => {
         { token: credentialResponse.credential },
         { withCredentials: true }
       );
+      
+      // Set user name and show animation
+      setUserName(res.data.user?.name || "New User");
       login(res.data.token);
-      navigate("/dashboard");
+      setShowAnimation(true);
     } catch (err) {
       console.error("Google login error:", err.response?.data || err.message);
       alert(
@@ -253,27 +259,42 @@ const SignUpPage = () => {
     return true;
   };
 
+  const handleAnimationComplete = () => {
+    navigate("/dashboard");
+  };
+
   return (
     <div className="page__wrapper">
+      {/* Tri-Color Animation */}
+      <TriColorAnimation 
+        isVisible={showAnimation}
+        onComplete={handleAnimationComplete}
+        userName={userName}
+      />
+      
       <div className="signup-layout">
-        {/* Left Side: Visuals & Mission Statement */}
+        {/* Left Side: Kerala Backwaters Visuals */}
         <div className="signup-layout__visuals">
-          <div className="brand__logo-container">
-            <Shield size={40} className="brand__logo" />
-            <h2 className="brand__name">VARUNA</h2>
-          </div>
+          <img src={nightImage} alt="Night Mountain City" className="background-image" />
+          <div className="overlay"></div>
           <div className="visuals__content">
-            <h1 className="visuals__title">Welcome to VARUNA</h1>
-            <p className="visuals__text">
-              A unified platform for effective disaster management and response.
-              Join us in building a resilient nation.
-            </p>
+            <div className="center__welcome">
+              <h1 className="center__title">Welcome</h1>
+            </div>
+            <div className="bottom__branding">
+              <div className="brand__logo-container">
+                <div className="brand__logo">
+                  <Shield size={32} className="brand__icon" />
+                </div>
+                <div className="brand__text">
+                  <h2 className="brand__name">VARUNA</h2>
+                  <p className="brand__tagline">
+                    Unified disaster management platform for building a resilient nation.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <img
-            src="https://img.freepik.com/premium-photo/people-using-technology-prepare-emergencies-disaster-management-generative-ai_1211754-1065.jpg"
-            alt="Disaster Management"
-            className="visuals__image"
-          />
         </div>
 
         {/* Right Side: Sign-up Form */}

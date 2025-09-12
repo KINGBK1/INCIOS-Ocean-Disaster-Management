@@ -60,7 +60,7 @@ const UserDashboardNavbar = ({ user }) => {
   };
 
   const handleProfile = () => {
-    console.log("Navigate to profile...");
+    navigate("/profile-settings");
     setIsProfileOpen(false);
   };
 
@@ -86,7 +86,7 @@ const UserDashboardNavbar = ({ user }) => {
           </div>
           <div className="brand-text">
             <h1 className="brand-title">VARUNA</h1>
-            <span className="brand-subtitle">Ocean Disaster Management</span>
+        
           </div>
         </div>
 

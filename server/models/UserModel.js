@@ -13,10 +13,20 @@ const userSchema = new mongoose.Schema({
   },
   officialId: { type: String }, // for admin/ngo/ddmo signup
   location: { type: String },
+  phone: { type: String },
+  bio: { type: String },
   isApproved: { type: Boolean, default: function() {
     return this.role === "user"; // auto-approved if regular user
   }},
-  picture: { type: String }
+  picture: { type: String },
+  preferences: {
+    emailAlerts: { type: Boolean, default: true },
+    smsAlerts: { type: Boolean, default: false },
+    pushNotifications: { type: Boolean, default: true },
+    weatherAlerts: { type: Boolean, default: true },
+    emergencyAlerts: { type: Boolean, default: true }
+  },
+  lastLogin: { type: Date }
 }, { timestamps: true });
 
 // password hashing

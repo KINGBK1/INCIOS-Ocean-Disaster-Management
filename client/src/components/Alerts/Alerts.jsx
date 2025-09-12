@@ -169,13 +169,15 @@ const Alerts = () => {
       console.log('Fetching alerts from:', `${import.meta.env.VITE_BACKEND_URL}/api/alerts/past90daysalerts`);
       
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/alerts/past90daysalerts`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/alerts/past90daysalerts?t=${Date.now()}`,
         {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         }
       );
@@ -185,12 +187,14 @@ const Alerts = () => {
       }
 
       const data = await response.json();
-      console.log('Received alerts data:', data);
+      console.log('🔍 RAW BACKEND RESPONSE:', data);
+      console.log('📊 Response type:', typeof data, 'Is array:', Array.isArray(data));
       
-      // Debug: Log first alert to see structure
       if (Array.isArray(data) && data.length > 0) {
-        console.log('First alert structure:', data[0]);
-        console.log('Alert fields:', Object.keys(data[0]));
+        console.log('🌍 Backend returned', data.length, 'total alerts');
+        console.log('📝 Alert regions:', data.map(a => a.REGIONNAME));
+        console.log('🔍 First alert full structure:', data[0]);
+        console.log('🗂️ Alert fields:', Object.keys(data[0]));
       }
       
       // Handle different response structures
@@ -205,61 +209,19 @@ const Alerts = () => {
 
       console.log(`Total alerts received: ${alertsData.length}`);
       
-      // Filter for STRICT India-only threats
-      const indiaRelevantAlerts = alertsData.filter(alert => {
-        const eventInfo = alert.detail_data?.[0]?.event_info?.[0] || {};
-        const evaluation = (eventInfo.evaluation || '').toLowerCase();
-        const advice = (eventInfo.advice || '').toLowerCase();
-        const regionName = (alert.REGIONNAME || '').toLowerCase();
-        const location = (eventInfo.Location || '').toLowerCase();
-        const bulletinTitle = (eventInfo.bulletinTitle || '').toLowerCase();
-        const updates = (eventInfo.updates || '').toLowerCase();
-        
-        // ONLY include if explicitly mentions India or Indian territories
-        const mentionsIndia = (
-          evaluation.includes('india') ||
-          advice.includes('india') ||
-          regionName.includes('india') ||
-          location.includes('india') ||
-          bulletinTitle.includes('india') ||
-          updates.includes('india') ||
-          
-          // Indian territories
-          regionName.includes('andaman') ||
-          regionName.includes('nicobar') ||
-          regionName.includes('lakshadweep') ||
-          regionName.includes('laccadive') ||
-          location.includes('andaman') ||
-          location.includes('nicobar') ||
-          location.includes('lakshadweep') ||
-          
-          // Indian Ocean if specifically related to India
-          (regionName.includes('indian ocean') && evaluation.includes('india')) ||
-          (location.includes('indian ocean') && evaluation.includes('india'))
-        );
-        
-        console.log(`Alert: ${alert.REGIONNAME || 'Unknown'} - Mentions India: ${mentionsIndia}`);
-        console.log(`  Evaluation: ${evaluation.substring(0, 100)}...`);
-        
-        return mentionsIndia;
-      });
+      // BHAI NO FILTERING NEEDED - BACKEND ALREADY RETURNS INDIA ONLY!
+      console.log('🇮🇳 BHAI BACKEND ALREADY FILTERED - TAKING ALL DATA AS INDIA ONLY!');
+      const indiaRelevantAlerts = alertsData; // Use all data from backend
       
-      console.log(`India-relevant alerts: ${indiaRelevantAlerts.length}`);
+      console.log(`🇮🇳 FILTERING COMPLETE: ${indiaRelevantAlerts.length} India-relevant alerts found`);
       
-      // Filter for past 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentAlerts = indiaRelevantAlerts.filter(alert => {
-        const alertDate = new Date(alert.ORIGINTIME || alert.fetched_at || alert.timestamp || '1970-01-01');
-        return alertDate >= thirtyDaysAgo;
-      });
-      
-      console.log(`Recent (30 days) India alerts: ${recentAlerts.length}`);
-      console.log('Sample alert:', recentAlerts[0]);
+      // NO DATE FILTERING - Show ALL India alerts from database
+      console.log(`📅 Showing ALL India alerts from database (no date restrictions)`);
+      console.log('👍 Final accepted alerts:', indiaRelevantAlerts.map(a => a.REGIONNAME));
+      console.log('Sample alert:', indiaRelevantAlerts[0]);
 
       // Process and enrich alerts data
-      const processedAlerts = recentAlerts.map((alert, index) => ({
+      const processedAlerts = indiaRelevantAlerts.map((alert, index) => ({
         ...alert,
         id: alert.EVID || alert.id || alert.OBJECTID || alert._id || index,
         severity: getSeverityLevel(alert),
@@ -371,7 +333,7 @@ const Alerts = () => {
     medium: alerts.filter(a => a.severity === 'medium').length,
     low: alerts.filter(a => a.severity === 'low').length,
     recent: alerts.filter(a => {
-      const alertDate = new Date(a.timestamp);
+      const alertDate = new Date(a.timestamp || a.ORIGINTIME || '1970-01-01');
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       return alertDate >= sevenDaysAgo;
@@ -387,7 +349,7 @@ const Alerts = () => {
         <div className="loading-overlay">
           <div className="loading-content">
             <div className="loading-spinner"></div>
-            <h2 className="loading-title">Loading India Threat Alerts</h2>
+            <h2 className="loading-title">Loading Alerts</h2>
             <div className="loading-progress">
               <div 
                 className="loading-progress-bar" 
@@ -397,31 +359,14 @@ const Alerts = () => {
             <p className="loading-text">
               {loadingProgress < 30 ? 'Connecting to INCOIS alert systems...' : 
                loadingProgress < 70 ? 'Fetching India-relevant threats...' : 
-               loadingProgress < 95 ? 'Filtering for past 30 days...' : 'Almost ready!'}
+               loadingProgress < 95 ? 'Processing all available data...' : 'Almost ready!'}
             </p>
           </div>
         </div>
       )}
 
       <div className="alerts-main-content">
-        {/* Header */}
-        <header className="alerts-header">
-          <div className="header-content">
-            <div className="header-text">
-              <h1 className="alerts-title">
-                <Shield className="title-icon" />
-                India Threat Assessment Center
-              </h1>
-              <p className="alerts-subtitle">
-                Real-time monitoring of earthquakes and tsunami threats relevant to India - Past 30 days
-              </p>
-            </div>
-            <button onClick={refreshAlerts} className="refresh-btn" disabled={loading}>
-              <RefreshCw className={`refresh-icon ${loading ? 'spinning' : ''}`} />
-              Refresh Data
-            </button>
-          </div>
-        </header>
+    
 
         {/* Statistics Dashboard */}
         <section className="stats-dashboard">
@@ -471,7 +416,7 @@ const Alerts = () => {
             <Search className="search-icon" />
             <input
               type="text"
-              placeholder="Search India-specific alerts by region, evaluation, or threat..."
+              placeholder="Search all India-specific alerts by region, evaluation, or threat..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -534,7 +479,7 @@ const Alerts = () => {
               <p>
                 {searchTerm || filterType !== 'all' || filterSeverity !== 'all' 
                   ? 'Try adjusting your search or filter criteria'
-                  : 'No earthquake or tsunami threats to India detected in the past 30 days. This is good news!'}
+                  : 'No earthquake or tsunami threats to India detected in available data. This is good news!'}
               </p>
             </div>
           ) : (

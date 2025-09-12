@@ -1,12 +1,26 @@
-# React + Vite
+# VARUNA - Ocean Disaster Management Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend client for VARUNA, a comprehensive ocean disaster management system built with React and Vite.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Real-time Dashboard**: Monitor ocean disasters in real-time
+- **Interactive Maps**: Live mapping with satellite, terrain, and default views
+- **Report Management**: Submit and view disaster reports
+- **Alert System**: Receive and manage disaster alerts
+- **User Authentication**: Secure login with Google OAuth integration
+- **Responsive Design**: Optimized for both desktop and mobile devices
 
-## Expanding the ESLint configuration
+## Technology Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **React 19**: Modern React with latest features
+- **Vite**: Fast build tool and development server
+- **React Router**: Client-side routing
+- **Leaflet**: Interactive maps
+- **Socket.io**: Real-time communication
+- **Google OAuth**: Authentication
+- **Axios**: HTTP client
+
+## Development
+
+This project uses Vite with React and includes HMR (Hot Module Replacement) and ESLint configuration.

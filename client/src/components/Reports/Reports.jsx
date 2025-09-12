@@ -32,7 +32,8 @@ import {
   Facebook,
   Twitter,
   Link2,
-  Download
+  Download,
+  RefreshCw
 } from "lucide-react";
 import { io } from "socket.io-client";
 import api from "../../api/axios";
@@ -82,6 +83,7 @@ const Reports = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
 const reverseGeocode = async (lat, lon) => {
   try {
@@ -250,8 +252,29 @@ if (Array.isArray(res.data)) {
 
     socket.on("connect", () => console.log("Socket connected:", socket.id));
     socket.on("disconnect", () => console.log("Socket disconnected"));
-    socket.on("newPost", (newPost) => setPosts((prev) => [newPost, ...prev]));
-    socket.on("zoneUpdate", (updatedZones) => setZones(updatedZones));
+    
+    socket.on("newPost", async (newPost) => {
+      console.log("📨 Received new post via socket:", newPost);
+      
+      // Only add post if it has severity prediction and is not non_disaster
+      if (newPost.severityPrediction && newPost.severityPrediction !== "non_disaster") {
+        // Process location name for the new post
+        let locationName = newPost.location;
+        if (newPost.location) {
+          const [lat, lon] = newPost.location.split(",").map(v => v.trim());
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const name = await reverseGeocode(lat, lon);
+            if (name) locationName = name;
+          }
+        }
+        
+        const processedPost = { ...newPost, locationName };
+        console.log("✅ Adding new post to reports:", processedPost);
+        setPosts((prev) => [processedPost, ...prev]);
+      } else {
+        console.log("⚠️ Skipping non-disaster post:", newPost.severityPrediction);
+      }
+    });
 
     // Fetch user data
     fetchUser();
@@ -342,6 +365,49 @@ const handleUpvote = async (postId) => {
     }));
   };
 
+  const refreshPosts = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/posts`
+      );
+
+      if (Array.isArray(res.data)) {
+        const severityOrder = { high_risk: 1, mild_risk: 2, low_risk: 3 };
+
+        const filtered = await Promise.all(
+          res.data
+            .filter(post => post.severityPrediction && post.severityPrediction !== "non_disaster")
+            .sort((a, b) => {
+              const severityA = severityOrder[a.severityPrediction] || 99;
+              const severityB = severityOrder[b.severityPrediction] || 99;
+              return severityA !== severityB
+                ? severityA - severityB
+                : new Date(b.createdAt) - new Date(a.createdAt);
+            })
+            .map(async (post) => {
+              let locationName = post.location;
+              if (post.location) {
+                const [lat, lon] = post.location.split(",").map(v => v.trim());
+                if (!isNaN(lat) && !isNaN(lon)) {
+                  const name = await reverseGeocode(lat, lon);
+                  if (name) locationName = name;
+                }
+              }
+              return { ...post, locationName };
+            })
+        );
+
+        setPosts(filtered);
+        console.log("✅ Posts refreshed successfully:", filtered.length);
+      }
+    } catch (err) {
+      console.error("Error refreshing posts:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const getSeverityBadge = (severity) => {
     const severityMap = {
       high_risk: { label: 'High Risk', class: 'high-risk', icon: '🚨' },
@@ -422,6 +488,15 @@ const handleUpvote = async (postId) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
             />
+            <button 
+              onClick={refreshPosts}
+              disabled={isRefreshing}
+              className="refresh-button"
+              title="Refresh posts"
+            >
+              <RefreshCw className={`refresh-icon ${isRefreshing ? 'spinning' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
           <div className="filter-tabs">
             <button 

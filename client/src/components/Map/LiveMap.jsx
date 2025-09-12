@@ -465,23 +465,10 @@ const LiveMap = () => {
         <div className="map-header">
           <div className="map-header-content">
             <h1 className="map-title">
-              <MapPin className="title-icon" />
+         
               Live Disaster & Coastline Alert Map
             </h1>
-            <div className="map-stats">
-              <div className="stat-item">
-                <AlertTriangle className="stat-icon" />
-                <span>Coastline Alerts: <strong>{coastlineAlerts.length}</strong></span>
-              </div>
-              <div className="stat-item">
-                <Activity className="stat-icon" />
-                <span>Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong></span>
-              </div>
-              <div className="stat-item">
-                <Users className="stat-icon" />
-                <span>Total Reports: <strong>{posts.length}</strong></span>
-              </div>
-            </div>
+            
           </div>
         </div>
 
@@ -491,7 +478,7 @@ const LiveMap = () => {
             ref={mapRef}
             center={mapCenter}
             zoom={mapZoom}
-            style={{ height: "100%", width: "100%", minHeight: "500px" }}
+            style={{ height: "200%", width: "100%", minHeight: "500px" }}
             className="live-map"
             whenCreated={(map) => {
               console.log('Map created successfully');

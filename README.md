@@ -1,6 +1,6 @@
-# INCIOS Ocean Disaster Management
+# VARUNA - Ocean Disaster Management System
 
-A comprehensive ocean disaster management system with real-time reporting, live mapping, and disaster response coordination.
+VARUNA is a comprehensive ocean disaster management system with real-time reporting, live mapping, and disaster response coordination. Named after the Hindu deity of water and oceans, VARUNA provides advanced tools for monitoring and managing oceanic disasters.
 
 ## Features
 
@@ -13,7 +13,8 @@ A comprehensive ocean disaster management system with real-time reporting, live 
 
 ```
 ├── backend/           # API server and database
-├── frontend/          # Client-side application
+├── client/            # VARUNA frontend client application
+├── server/            # Additional server components
 ├── docs/             # Documentation
 ├── assets/           # Static assets
 └── README.md         # This file
@@ -35,11 +36,11 @@ npm install
 npm start
 ```
 
-### Frontend
+### Frontend (VARUNA Client)
 ```bash
-cd frontend
+cd client
 npm install
-npm start
+npm run dev
 ```
 
 ## Development Status

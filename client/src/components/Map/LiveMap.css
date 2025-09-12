@@ -52,7 +52,7 @@
 .map-header {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--gray-200);
-  padding: 2rem 1.5rem;
+  padding: 0.5rem 1.5rem;
   box-shadow: var(--shadow);
 }
 
@@ -62,14 +62,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 2rem;
+  gap: 0.5rem;
 }
 
 .map-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 1.875rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
