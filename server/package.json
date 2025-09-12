@@ -22,6 +22,7 @@
     "google-auth-library": "^10.3.0",
     "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",

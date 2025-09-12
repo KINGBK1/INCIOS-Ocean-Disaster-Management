@@ -12,6 +12,7 @@ const postSchema = new mongoose.Schema({
   location: String,
   severityPrediction: { type: String }, // predicted by FastAPI
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 }, { timestamps: true });
 
 export default mongoose.model("Post", postSchema);

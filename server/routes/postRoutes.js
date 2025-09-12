@@ -1,5 +1,7 @@
 import express from "express";
 import { createPost, getPosts, getPostById, deletePost } from "../controllers/postController.js";
+import { upvotePost } from "../controllers/upvoteController.js"; // Import the correct controller
+import { authMiddleware } from "../middleware/authMiddleware.js"; // Import auth middleware
 import multer from "multer";
 
 const router = express.Router();
@@ -8,7 +10,7 @@ const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
 // Route to create a new post with file uploads
-router.post("/", upload.array("files"), createPost);
+router.post("/", upload.array("files"), authMiddleware, createPost);
 
 // Route to get all posts
 router.get("/", getPosts);
@@ -17,6 +19,9 @@ router.get("/", getPosts);
 router.get("/:id", getPostById);
 
 // Route to delete a post
-router.delete("/:id", deletePost);
+router.delete("/:id", authMiddleware, deletePost);
+
+// Route to upvote a post
+router.post("/:id/upvote", authMiddleware, upvotePost);
 
 export default router;

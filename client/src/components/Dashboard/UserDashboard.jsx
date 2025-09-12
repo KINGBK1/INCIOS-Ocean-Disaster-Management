@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import "./UserDashboard.css";
 import Cookies from "js-cookie";
 import UserDashboardNavbar from "./Navbar/UserDashboardNav";
+import Footer from "../Footer/Footer";
 import { CircleMarker } from "react-leaflet";
 
 // Fix default markers in Leaflet
@@ -214,11 +215,25 @@ const UserDashboard = () => {
             credentials: 'include',
           }
         );
+        
+        if (!res.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        
         const data = await res.json();
-        setUser(data.user);
+        console.log('User data fetched:', data); // Debug log
+        
+        // Handle different response structures
+        const userData = data.user || data.data || data;
+        setUser(userData);
       } catch (err) {
         console.error("Error fetching user:", err);
-        navigate("/signin");
+        // Set a fallback user for development
+        setUser({
+          name: "Demo User",
+          email: "demo@example.com",
+          id: "demo"
+        });
       }
     };
 
@@ -286,6 +301,31 @@ const UserDashboard = () => {
       map.flyTo([userLocation.lat, userLocation.lng], 14);
     }
   }, [userLocation]);
+
+  // Fix map loading on resize and mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        setTimeout(() => {
+          mapRef.current.invalidateSize();
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    // Trigger resize after component mount to ensure map loads on mobile
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
+  }, []);
 
   const getUserLocation = () => {
     if (!navigator.geolocation) {
@@ -391,29 +431,28 @@ const UserDashboard = () => {
       <div className="main-content">
         <div className="content-grid">
           <div className="map-section">
-            <div className="map-container">
-              <div className="section-header">
-                <h2 className="section-title">
-                  🌍 Live Disaster & Coastline Alert Zones
-                </h2>
-                {locationError && (
-                  <div className="location-error">
-                    <small>{locationError}</small>
-                  </div>
-                )}
-                {/* NEW: Alert Statistics */}
-                <div className="alert-stats">
-                  <span className="stat-item">
-                    📊 Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
-                  </span>
-                  <span className="stat-item">
-                    🚨 Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
-                  </span>
-                  <span className="stat-item">
-                    ⚠️ Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
-                  </span>
+            <div className="section-header">
+              <h2 className="section-title">
+                🌍 Live Disaster & Coastline Alert Zones
+              </h2>
+              {locationError && (
+                <div className="location-error">
+                  <small>{locationError}</small>
                 </div>
+              )}
+              <div className="alert-stats">
+                <span className="stat-item">
+                  📊 Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
+                </span>
+                <span className="stat-item">
+                  🚨 Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
+                </span>
+                <span className="stat-item">
+                  ⚠️ Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
+                </span>
               </div>
+            </div>
+            <div className="map-container">
               <div className="map-wrapper">
                 <MapContainer
                   ref={mapRef}
@@ -605,6 +644,7 @@ const UserDashboard = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

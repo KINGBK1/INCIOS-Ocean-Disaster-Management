@@ -10,6 +10,7 @@ import postRoutes from "./routes/postRoutes.js";
 import coastRoutes from "./routes/coastRoutes.js";
 import incoisRoutes from "./routes/incoisRoutes.js";
 
+
 dotenv.config();
 
 const app = express();
