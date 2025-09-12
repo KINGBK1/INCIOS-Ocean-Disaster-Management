@@ -1,8 +1,49 @@
-// import Post from "../models/PostModel.js"; // Commented for testing
-// import cloudinary from "../config/cloudinary.js"; // Commented for testing
+// Database temporarily disabled for testing
+// import Post from "../models/PostModel.js"; 
+// import cloudinary from "../config/cloudinary.js"; 
 import axios from "axios";
-import fs from "fs"; // Change back to standard fs for createReadStream
-import FormData from "form-data"; 
+import fs from "fs";
+import FormData from "form-data";
+
+// In-memory storage for testing
+let posts = [
+  {
+    _id: "test1",
+    content: "Emergency flood situation in Mumbai area! Need immediate help",
+    location: "19.0760, 72.8777",
+    severityPrediction: "high_risk",
+    createdAt: new Date(),
+    files: [],
+    user: { name: "Test User 1" }
+  },
+  {
+    _id: "test2", 
+    content: "Heavy rainfall causing severe waterlogging in Delhi roads",
+    location: "28.6139, 77.2090",
+    severityPrediction: "mild_risk",
+    createdAt: new Date(Date.now() - 3600000),
+    files: [],
+    user: { name: "Test User 2" }
+  },
+  {
+    _id: "test3", 
+    content: "Storm approaching coastal areas, evacuation needed urgently",
+    location: "11.0168, 76.9558",
+    severityPrediction: "high_risk",
+    createdAt: new Date(Date.now() - 7200000),
+    files: [],
+    user: { name: "Test User 3" }
+  },
+  {
+    _id: "test4", 
+    content: "Light rain expected in the area tomorrow",
+    location: "22.5726, 88.3639",
+    severityPrediction: "low_risk",
+    createdAt: new Date(Date.now() - 10800000),
+    files: [],
+    user: { name: "Test User 4" }
+  }
+];
 
 // Create a new post
 export const createPost = async (req, res) => {

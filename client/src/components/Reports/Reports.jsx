@@ -84,6 +84,7 @@ const Reports = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   
 const reverseGeocode = async (lat, lon) => {
   try {
@@ -197,7 +198,26 @@ if (Array.isArray(res.data)) {
 
   const filtered = await Promise.all(
     res.data
-      .filter(post => post.severityPrediction && post.severityPrediction !== "non_disaster")
+      .filter(post => {
+        // Show posts if they have disaster-related keywords OR legitimate severity
+        const hasDisasterKeywords = post.content && (
+          post.content.toLowerCase().includes('flood') ||
+          post.content.toLowerCase().includes('emergency') ||
+          post.content.toLowerCase().includes('help') ||
+          post.content.toLowerCase().includes('urgent') ||
+          post.content.toLowerCase().includes('cyclone') ||
+          post.content.toLowerCase().includes('storm') ||
+          post.content.toLowerCase().includes('rain') ||
+          post.content.toLowerCase().includes('disaster') ||
+          post.content.toLowerCase().includes('dub') ||
+          post.content.toLowerCase().includes('bachao')
+        );
+        
+        const hasValidSeverity = post.severityPrediction && 
+          ['high_risk', 'mild_risk', 'low_risk'].includes(post.severityPrediction);
+        
+        return hasDisasterKeywords || hasValidSeverity;
+      })
       .sort((a, b) => {
         const severityA = severityOrder[a.severityPrediction] || 99;
         const severityB = severityOrder[b.severityPrediction] || 99;
@@ -250,14 +270,36 @@ if (Array.isArray(res.data)) {
       withCredentials: true,
     });
 
-    socket.on("connect", () => console.log("Socket connected:", socket.id));
-    socket.on("disconnect", () => console.log("Socket disconnected"));
+    socket.on("connect", () => { 
+      console.log("Socket connected:", socket.id);
+      setSocketConnected(true);
+    });
+    socket.on("disconnect", () => { 
+      console.log("Socket disconnected");
+      setSocketConnected(false);
+    });
     
     socket.on("newPost", async (newPost) => {
       console.log("📨 Received new post via socket:", newPost);
       
-      // Only add post if it has severity prediction and is not non_disaster
-      if (newPost.severityPrediction && newPost.severityPrediction !== "non_disaster") {
+      // Check if post should be displayed using same logic as fetch
+      const hasDisasterKeywords = newPost.content && (
+        newPost.content.toLowerCase().includes('flood') ||
+        newPost.content.toLowerCase().includes('emergency') ||
+        newPost.content.toLowerCase().includes('help') ||
+        newPost.content.toLowerCase().includes('urgent') ||
+        newPost.content.toLowerCase().includes('cyclone') ||
+        newPost.content.toLowerCase().includes('storm') ||
+        newPost.content.toLowerCase().includes('rain') ||
+        newPost.content.toLowerCase().includes('disaster') ||
+        newPost.content.toLowerCase().includes('dub') ||
+        newPost.content.toLowerCase().includes('bachao')
+      );
+      
+      const hasValidSeverity = newPost.severityPrediction && 
+        ['high_risk', 'mild_risk', 'low_risk'].includes(newPost.severityPrediction);
+      
+      if (hasDisasterKeywords || hasValidSeverity) {
         // Process location name for the new post
         let locationName = newPost.location;
         if (newPost.location) {
@@ -365,6 +407,26 @@ const handleUpvote = async (postId) => {
     }));
   };
 
+  // Polling fallback to keep posts fresh if socket isn't updating
+  useEffect(() => {
+    // Start polling if not connected or if no posts yet
+    const shouldPoll = !socketConnected;
+    if (!shouldPoll) return;
+
+    console.log('🕒 Starting polling fallback for reports...');
+    const interval = setInterval(() => {
+      refreshPosts();
+    }, 15000); // every 15s
+
+    // Do an immediate refresh when polling starts
+    refreshPosts();
+
+    return () => {
+      clearInterval(interval);
+      console.log('🕒 Stopped polling fallback for reports.');
+    };
+  }, [socketConnected]);
+
   const refreshPosts = async () => {
     setIsRefreshing(true);
     try {
@@ -377,7 +439,25 @@ const handleUpvote = async (postId) => {
 
         const filtered = await Promise.all(
           res.data
-            .filter(post => post.severityPrediction && post.severityPrediction !== "non_disaster")
+            .filter(post => {
+              const hasDisasterKeywords = post.content && (
+                post.content.toLowerCase().includes('flood') ||
+                post.content.toLowerCase().includes('emergency') ||
+                post.content.toLowerCase().includes('help') ||
+                post.content.toLowerCase().includes('urgent') ||
+                post.content.toLowerCase().includes('cyclone') ||
+                post.content.toLowerCase().includes('storm') ||
+                post.content.toLowerCase().includes('rain') ||
+                post.content.toLowerCase().includes('disaster') ||
+                post.content.toLowerCase().includes('dub') ||
+                post.content.toLowerCase().includes('bachao')
+              );
+              
+              const hasValidSeverity = post.severityPrediction && 
+                ['high_risk', 'mild_risk', 'low_risk'].includes(post.severityPrediction);
+              
+              return hasDisasterKeywords || hasValidSeverity;
+            })
             .sort((a, b) => {
               const severityA = severityOrder[a.severityPrediction] || 99;
               const severityB = severityOrder[b.severityPrediction] || 99;
@@ -408,13 +488,25 @@ const handleUpvote = async (postId) => {
     }
   };
 
-  const getSeverityBadge = (severity) => {
+  const getSeverityBadge = (severity, postContent = '') => {
+    // Override non_disaster if post has emergency keywords
+    if (severity === 'non_disaster' && postContent) {
+      const emergencyKeywords = ['emergency', 'urgent', 'help', 'bachao', 'dub', 'flood', 'cyclone'];
+      const hasEmergency = emergencyKeywords.some(keyword => 
+        postContent.toLowerCase().includes(keyword)
+      );
+      if (hasEmergency) {
+        severity = 'mild_risk'; // Override to show as mild risk
+      }
+    }
+    
     const severityMap = {
       high_risk: { label: 'High Risk', class: 'high-risk', icon: '🚨' },
       mild_risk: { label: 'Mild Risk', class: 'mild-risk', icon: '⚠️' },
-      low_risk: { label: 'Low Risk', class: 'low-risk', icon: '⚡' }
+      low_risk: { label: 'Low Risk', class: 'low-risk', icon: '⚡' },
+      non_disaster: { label: 'Report', class: 'report', icon: '📝' }
     };
-    return severityMap[severity] || { label: 'Unknown', class: 'unknown', icon: '❓' };
+    return severityMap[severity] || { label: 'Community Post', class: 'community', icon: '💬' };
   };
 
   const filteredPosts = posts.filter(post => {
@@ -497,6 +589,10 @@ const handleUpvote = async (postId) => {
               <RefreshCw className={`refresh-icon ${isRefreshing ? 'spinning' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
+            <div className={`connection-status ${socketConnected ? 'connected' : 'disconnected'}`}>
+              <div className="status-dot"></div>
+              <span>{socketConnected ? 'Live' : 'Polling'}</span>
+            </div>
           </div>
           <div className="filter-tabs">
             <button 
@@ -540,7 +636,7 @@ const handleUpvote = async (postId) => {
             </div>
           ) : (
             filteredPosts.map((post) => {
-              const severity = getSeverityBadge(post.severityPrediction);
+              const severity = getSeverityBadge(post.severityPrediction, post.content);
               const postId = post._id || post.id;
               
               return (

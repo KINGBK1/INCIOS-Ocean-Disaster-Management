@@ -73,7 +73,7 @@ const UserDashboardNavbar = ({ user }) => {
     { name: "Live Map", icon: Map, href: "/map" },
     { name: "Alerts", icon: AlertTriangle, href: "/alerts" },
     { name: "Reports", icon: MessageSquare, href: "/reports" },
-    { name: "Analytics", icon: Activity, href: "/analytics" },
+   // { name: "Analytics", icon: Activity, href: "/analytics" },
   ];
 
   return (
