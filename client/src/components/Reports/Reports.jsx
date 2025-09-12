@@ -1,38 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   MapPin,
   Video,
   Mic,
-  Heart,
   MessageCircle,
   Share2,
-  Menu,
   X,
-  Home,
-  Map,
   AlertTriangle,
-  MessageSquare,
-  Bell,
-  Settings,
   User,
-  LogOut,
-  ChevronDown,
-  Shield,
-  Activity,
   ChevronUp,
-  Copy,
   Send,
-  MoreHorizontal,
-  Calendar,
   Clock,
   Users,
   TrendingUp,
-  Filter,
   Search,
   Facebook,
   Twitter,
   Link2,
-  Download,
   RefreshCw
 } from "lucide-react";
 import { io } from "socket.io-client";
@@ -44,9 +28,62 @@ import "./Reports.css";
 import UserDashboardNavbar from "../Dashboard/Navbar/UserDashboardNav";
 import Footer from "../Footer/Footer";
 
+// Lazy loading image component
+const LazyImage = React.memo(({ src, alt, className, ...props }) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setImageSrc(src);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <div ref={imgRef} className={className} {...props}>
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={alt}
+          className={className}
+          onLoad={() => setIsLoaded(true)}
+          {...props}
+        />
+      ) : (
+        <div 
+          className={`${className} lazy-placeholder`} 
+          style={{ 
+            backgroundColor: '#f3f4f6', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            minHeight: '200px'
+          }}
+        >
+          <div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 
 // --- Skeleton Card Component ---
-const SkeletonCard = () => (
+const SkeletonCard = React.memo(() => (
   <div className="skeleton-card">
     <div className="skeleton-header">
       <div className="skeleton-header-avatar"></div>
@@ -68,7 +105,207 @@ const SkeletonCard = () => (
       <div className="skeleton-location"></div>
     </div>
   </div>
-);
+));
+
+// --- Location Loading Component ---
+const LocationLoader = React.memo(({ location, isLoading }) => {
+  if (!location) return null;
+  
+  // Check if location looks like coordinates
+  const isCoordinates = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(location);
+  
+  return (
+    <div className="post-location">
+      <MapPin className="location-icon" />
+      {isLoading && isCoordinates ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ opacity: 0.7 }}>{location}</span>
+          <div className="location-loading-spinner"></div>
+        </span>
+      ) : (
+        <span>{location}</span>
+      )}
+    </div>
+  );
+});
+
+// --- Memoized Post Card Component ---
+const PostCard = React.memo(({ 
+  post, 
+  getSeverityBadge, 
+  upvotes, 
+  handleUpvote, 
+  handleToggleComments, 
+  handleShare, 
+  copiedPostId,
+  showComments,
+  comments,
+  newComment,
+  setNewComment,
+  handleAddComment,
+  user,
+  isLoadingLocation
+}) => {
+  const severity = getSeverityBadge(post.severityPrediction, post.content);
+  const postId = post._id || post.id;
+  
+  return (
+    <article key={postId} className="post-card">
+      {/* Post Header */}
+      <header className="post-header">
+        <div className="post-author">
+          <div className="post-avatar">
+            {post.author?.avatar || post.user?.avatar ? (
+              <LazyImage
+                src={post.author?.avatar || post.user?.avatar}
+                alt={`${post.author?.name || post.user?.name || 'User'}'s Avatar`}
+                className="avatar-img"
+                style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid var(--primary)' }}
+              />
+            ) : (
+              <img
+                src={`https://placehold.co/48x48/1e40af/ffffff?text=${(post.author?.name || post.user?.name || post.username || 'U').charAt(0)}`}
+                alt="User Avatar"
+                style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid var(--primary)', objectFit: 'cover' }}
+              />
+            )}
+          </div>
+          <div className="post-info">
+            <div className="post-username">{post.author?.name || post.user?.name || post.username || 'Anonymous Reporter'}</div>
+            <div className="post-meta">
+              <Clock className="meta-icon" />
+              <span>{new Date(post.createdAt || Date.now()).toLocaleDateString()}</span>
+            </div>
+          </div>
+        </div>
+        <div className="post-severity-badge">
+          <span className={`severity-badge ${severity.class}`}>
+            {severity.icon} {severity.label}
+          </span>
+        </div>
+      </header>
+
+      {/* Post Content */}
+      <div className="post-content">
+        {post.content && <p className="post-text">{post.content}</p>}
+        
+        {/* Location with loading animation */}
+        {post.location && (
+          <LocationLoader 
+            location={post.locationName || post.location} 
+            isLoading={isLoadingLocation && post.locationName === undefined}
+          />
+        )}
+      </div>
+
+      {/* Media */}
+      {post.files?.length > 0 && (
+        <div className="post-media">
+          {post.files.map((fileObj, index) => (
+            <div key={index} className="post-media-item">
+              {fileObj.type === "image" && (
+                <LazyImage
+                  src={fileObj.url}
+                  alt="Report Media"
+                  className="post-image"
+                />
+              )}
+              {fileObj.type === "video" && (
+                <div className="media-placeholder video-placeholder">
+                  <Video className="media-icon" />
+                  <span>Video Report</span>
+                </div>
+              )}
+              {fileObj.type === "audio" && (
+                <div className="media-placeholder audio-placeholder">
+                  <Mic className="media-icon" />
+                  <span>Audio Report</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Post Actions */}
+      <div className="post-actions">
+        <button
+          className={`action-button ${upvotes[postId] ? 'upvoted' : ''}`}
+          onClick={() => handleUpvote(postId)}
+        >
+          <ChevronUp className="action-icon" />
+          <span>{upvotes[postId] || 0} Upvotes</span>
+        </button>
+        
+        <button
+          className="action-button"
+          onClick={() => handleToggleComments(postId)}
+        >
+          <MessageCircle className="action-icon" />
+          <span>{comments[postId]?.length || 0} Comments</span>
+        </button>
+        
+        <button
+          className="action-button"
+          onClick={() => handleShare(postId)}
+        >
+          <Share2 className="action-icon" />
+          <span>Share</span>
+        </button>
+
+        {copiedPostId === postId && (
+          <div className="copy-notification">✓ Link copied!</div>
+        )}
+      </div>
+
+      {/* Comments Section */}
+      {showComments[postId] && (
+        <div className="comments-section">
+          <div className="comments-header">
+            <h4>Comments ({comments[postId]?.length || 0})</h4>
+          </div>
+          
+          {/* Comment Input */}
+          <div className="comment-input">
+            <input
+              type="text"
+              placeholder="Add a comment..."
+              value={newComment[postId] || ''}
+              onChange={(e) => setNewComment(prev => ({
+                ...prev,
+                [postId]: e.target.value
+              }))}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddComment(postId)}
+              className="comment-field"
+            />
+            <button
+              onClick={() => handleAddComment(postId)}
+              className="comment-submit"
+            >
+              <Send className="send-icon" />
+            </button>
+          </div>
+
+          {/* Comments List */}
+          <div className="comments-list">
+            {comments[postId]?.map((comment) => (
+              <div key={comment.id} className="comment">
+                <div className="comment-avatar">
+                  <User className="comment-user-icon" />
+                </div>
+                <div className="comment-content">
+                  <div className="comment-author">{comment.author}</div>
+                  <div className="comment-text">{comment.text}</div>
+                  <div className="comment-time">{comment.timestamp}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+});
 
 const Reports = () => {
   const [posts, setPosts] = useState([]);
@@ -82,48 +319,183 @@ const Reports = () => {
   const [shareModal, setShareModal] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [locationCache, setLocationCache] = useState(new Map());
   
-const reverseGeocode = async (lat, lon) => {
+  // Pagination and lazy loading states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [allPostsData, setAllPostsData] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(new Set());
+  const POSTS_PER_PAGE = 10;
+  
+// Improved reverse geocoding with better address parsing and fallback services
+const reverseGeocode = useCallback(async (lat, lon) => {
+  const key = `${lat},${lon}`;
+  if (locationCache.has(key)) {
+    return locationCache.get(key);
+  }
+  
+  // Convert string coordinates to numbers if needed
+  const latitude = parseFloat(lat);
+  const longitude = parseFloat(lon);
+  
+  if (isNaN(latitude) || isNaN(longitude)) {
+    const fallback = `Invalid coordinates`;
+    setLocationCache(prev => new Map(prev).set(key, fallback));
+    return fallback;
+  }
+  
+  console.log(`🌍 Geocoding: ${latitude}, ${longitude}`);
+  
+  // Try primary geocoding service (Nominatim)
   try {
     const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
-      params: { format: "json", lat, lon },
-     // headers: { "User-Agent": "YourApp/1.0" }, // Nominatim ko ye zaruri hai
+      params: { 
+        format: "json", 
+        lat: latitude, 
+        lon: longitude,
+        addressdetails: 1,
+        zoom: 10 // This helps get city-level details
+      },
+      headers: { "User-Agent": "VarunaDisasterApp/1.0" },
+      timeout: 8000 // 8 second timeout
     });
 
     const data = res.data;
-    return [
-      data?.address?.city || data?.address?.town || data?.address?.village,
-      data?.address?.state,
-    ]
-      .filter(Boolean)
-      .join(", ");
-  } catch (err) {
-    console.error("Geocoding failed:", err.message);
-    return null;
-  }
-};
-  // Enhanced loading progress
-  useEffect(() => {
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev >= 95) return prev;
-        return prev + Math.random() * 15;
+    console.log('📍 Geocoding response:', data);
+    
+    if (!data || !data.address) {
+      throw new Error('No address data received');
+    }
+
+    // Try multiple address components for better coverage
+    const address = data.address;
+    const locationParts = [];
+    
+    // Primary location (city/town/village)
+    const primaryLocation = address.city || 
+                           address.town || 
+                           address.village || 
+                           address.municipality || 
+                           address.suburb || 
+                           address.neighbourhood || 
+                           address.hamlet;
+    
+    if (primaryLocation) {
+      locationParts.push(primaryLocation);
+    }
+    
+    // State/Region
+    const region = address.state || 
+                  address.region || 
+                  address.province || 
+                  address.county;
+    
+    if (region) {
+      locationParts.push(region);
+    }
+    
+    // Country as last resort if no city/state found
+    if (locationParts.length === 0 && address.country) {
+      locationParts.push(address.country);
+    }
+    
+    let locationName = locationParts.join(", ");
+    
+    // If still no meaningful name found, use display_name or fallback
+    if (!locationName || locationName.length < 3) {
+      // Try to extract meaningful parts from display_name
+      if (data.display_name) {
+        const displayParts = data.display_name.split(',').map(part => part.trim());
+        // Take first 2 meaningful parts (usually city, state)
+        locationName = displayParts.slice(0, 2).join(', ');
+      }
+    }
+    
+    // Final fallback - if still no good name, use a more descriptive format
+    if (!locationName || locationName.length < 3) {
+      locationName = `Location ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+    }
+      
+    console.log(`✅ Geocoded to: ${locationName}`);
+    setLocationCache(prev => new Map(prev).set(key, locationName));
+    return locationName;
+    
+  } catch (nominatimError) {
+    console.warn("Nominatim geocoding failed, trying fallback:", nominatimError.message);
+    
+    // Try fallback service (BigDataCloud - free tier)
+    try {
+      const fallbackRes = await axios.get("https://api.bigdatacloud.net/data/reverse-geocode-client", {
+        params: {
+          latitude: latitude,
+          longitude: longitude,
+          localityLanguage: 'en'
+        },
+        timeout: 5000
       });
-    }, 100);
+      
+      const fallbackData = fallbackRes.data;
+      console.log('🔄 Fallback geocoding response:', fallbackData);
+      
+      if (fallbackData) {
+        const locationParts = [];
+        
+        if (fallbackData.city) locationParts.push(fallbackData.city);
+        else if (fallbackData.locality) locationParts.push(fallbackData.locality);
+        
+        if (fallbackData.principalSubdivision) locationParts.push(fallbackData.principalSubdivision);
+        else if (fallbackData.countryName && locationParts.length === 0) locationParts.push(fallbackData.countryName);
+        
+        if (locationParts.length > 0) {
+          const locationName = locationParts.join(', ');
+          console.log(`✅ Fallback geocoded to: ${locationName}`);
+          setLocationCache(prev => new Map(prev).set(key, locationName));
+          return locationName;
+        }
+      }
+    } catch (fallbackError) {
+      console.warn("Fallback geocoding also failed:", fallbackError.message);
+    }
+    
+    // If both services fail, check if coordinates look like they're in a known region
+    let regionGuess = '';
+    if (latitude >= 6 && latitude <= 37 && longitude >= 68 && longitude <= 97) {
+      regionGuess = ', India';
+    } else if (latitude >= 24 && latitude <= 49 && longitude >= -125 && longitude <= -66) {
+      regionGuess = ', USA';
+    }
+    
+    // More descriptive fallback with region guess
+    const fallback = `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}${regionGuess}`;
+    setLocationCache(prev => new Map(prev).set(key, fallback));
+    return fallback;
+  }
+}, [locationCache]);
 
-    const completeLoading = setTimeout(() => {
-      setLoadingProgress(100);
-      clearInterval(progressInterval);
-    }, 1400);
-
-    return () => {
-      clearInterval(progressInterval);
-      clearTimeout(completeLoading);
-    };
-  }, []);
+// Reusable disaster post filtering function
+const isDisasterPost = useCallback((post) => {
+  const hasDisasterKeywords = post.content && (
+    post.content.toLowerCase().includes('flood') ||
+    post.content.toLowerCase().includes('emergency') ||
+    post.content.toLowerCase().includes('help') ||
+    post.content.toLowerCase().includes('urgent') ||
+    post.content.toLowerCase().includes('cyclone') ||
+    post.content.toLowerCase().includes('storm') ||
+    post.content.toLowerCase().includes('rain') ||
+    post.content.toLowerCase().includes('disaster') ||
+    post.content.toLowerCase().includes('dub') ||
+    post.content.toLowerCase().includes('bachao')
+  );
+  
+  const hasValidSeverity = post.severityPrediction && 
+    ['high_risk', 'mild_risk', 'low_risk'].includes(post.severityPrediction);
+  
+  return hasDisasterKeywords || hasValidSeverity;
+}, []);
 
   // Fetch user data
   const fetchUser = async () => {
@@ -186,79 +558,109 @@ const reverseGeocode = async (lat, lon) => {
     }
   };
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/posts`
-        );
+  // Fast initial load - fetch minimal data first
+  const fetchInitialPosts = useCallback(async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/posts`
+      );
 
-if (Array.isArray(res.data)) {
-  const severityOrder = { high_risk: 1, mild_risk: 2, low_risk: 3 };
+      if (Array.isArray(res.data)) {
+        const severityOrder = { high_risk: 1, mild_risk: 2, low_risk: 3 };
 
-  const filtered = await Promise.all(
-    res.data
-      .filter(post => {
-        // Show posts if they have disaster-related keywords OR legitimate severity
-        const hasDisasterKeywords = post.content && (
-          post.content.toLowerCase().includes('flood') ||
-          post.content.toLowerCase().includes('emergency') ||
-          post.content.toLowerCase().includes('help') ||
-          post.content.toLowerCase().includes('urgent') ||
-          post.content.toLowerCase().includes('cyclone') ||
-          post.content.toLowerCase().includes('storm') ||
-          post.content.toLowerCase().includes('rain') ||
-          post.content.toLowerCase().includes('disaster') ||
-          post.content.toLowerCase().includes('dub') ||
-          post.content.toLowerCase().includes('bachao')
-        );
+        // Filter and sort all posts, but don't process locations yet
+        const filteredPosts = res.data
+          .filter(isDisasterPost)
+          .sort((a, b) => {
+            const severityA = severityOrder[a.severityPrediction] || 99;
+            const severityB = severityOrder[b.severityPrediction] || 99;
+            return severityA !== severityB
+              ? severityA - severityB
+              : new Date(b.createdAt) - new Date(a.createdAt);
+          });
+
+        // Store all posts data
+        setAllPostsData(filteredPosts);
         
-        const hasValidSeverity = post.severityPrediction && 
-          ['high_risk', 'mild_risk', 'low_risk'].includes(post.severityPrediction);
+        // INSTANT LOADING: Show posts immediately with raw coordinates
+        const initialPosts = filteredPosts.slice(0, POSTS_PER_PAGE);
+        setPosts(initialPosts); // Show posts immediately!
+        setHasMorePosts(filteredPosts.length > POSTS_PER_PAGE);
         
-        return hasDisasterKeywords || hasValidSeverity;
-      })
-      .sort((a, b) => {
-        const severityA = severityOrder[a.severityPrediction] || 99;
-        const severityB = severityOrder[b.severityPrediction] || 99;
-        return severityA !== severityB
-          ? severityA - severityB
-          : new Date(b.createdAt) - new Date(a.createdAt);
-      })
-      .map(async (post) => {
-        let locationName = post.location;
-        if (post.location) {
-          const [lat, lon] = post.location.split(",").map(v => v.trim());
-          if (!isNaN(lat) && !isNaN(lon)) {
-            const name = await reverseGeocode(lat, lon);
-            if (name) locationName = name;
-          }
-        }
-        return { ...post, locationName };
-      })
-  );
-
-  setPosts(filtered);
-  // Initialize comments for each post
-  const initialComments = {};
-  filtered.forEach(post => {
-    initialComments[post._id] = [];
-  });
-  setComments(initialComments);
-}else {
-          console.error("Server response is not an array:", res.data);
-          setPosts([]);
-        }
-      } catch (err) {
-        console.error("Error fetching posts:", err);
-      } finally {
-        setIsLoading(false);
+        // Initialize comments for initial posts
+        const initialComments = {};
+        initialPosts.forEach(post => {
+          initialComments[post._id] = [];
+        });
+        setComments(initialComments);
+        
+        console.log(`⚡ Loaded ${initialPosts.length} posts INSTANTLY! Now geocoding in background...`);
+        
+        // BACKGROUND GEOCODING: Process location names after posts are shown
+        setTimeout(() => {
+          initialPosts.forEach(async (post, index) => {
+            if (post.location && typeof post.location === 'string') {
+              const locationParts = post.location.split(",").map(v => v.trim());
+              if (locationParts.length === 2) {
+                const [lat, lon] = locationParts;
+                const latNum = parseFloat(lat);
+                const lonNum = parseFloat(lon);
+                
+                if (!isNaN(latNum) && !isNaN(lonNum) && Math.abs(latNum) <= 90 && Math.abs(lonNum) <= 180) {
+                  // Mark this post as loading
+                  setLoadingLocations(prev => new Set(prev).add(post._id));
+                  
+                  console.log(`🌍 Background geocoding ${index + 1}/${initialPosts.length}: ${lat}, ${lon}`);
+                  try {
+                    const locationName = await reverseGeocode(lat, lon);
+                    if (locationName && locationName !== post.location) {
+                      // Update the specific post with new location name
+                      setPosts(prevPosts => 
+                        prevPosts.map(p => 
+                          p._id === post._id 
+                            ? { ...p, locationName }
+                            : p
+                        )
+                      );
+                      console.log(`✅ Updated location for post ${post._id}: ${locationName}`);
+                    }
+                  } catch (error) {
+                    console.warn(`⚠️ Geocoding failed for ${lat}, ${lon}:`, error);
+                  } finally {
+                    // Remove loading state
+                    setLoadingLocations(prev => {
+                      const newSet = new Set(prev);
+                      newSet.delete(post._id);
+                      return newSet;
+                    });
+                  }
+                }
+              }
+            }
+          });
+        }, 100); // Start geocoding after 100ms
+      } else {
+        console.error("Server response is not an array:", res.data);
+        setPosts([]);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      setPosts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isDisasterPost, POSTS_PER_PAGE]);
 
-    const loadingTimer = setTimeout(() => {
-      fetchPosts();
-    }, 1500);
+  useEffect(() => {
+    // Register service worker for API caching
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => console.log('📦 Service worker registered for API caching'))
+        .catch(error => console.log('❌ Service worker registration failed:', error));
+    }
+    
+    // Fetch initial posts immediately - much faster now!
+    fetchInitialPosts();
 
     const backendURL =
       import.meta.env.MODE === "production"
@@ -282,24 +684,8 @@ if (Array.isArray(res.data)) {
     socket.on("newPost", async (newPost) => {
       console.log("📨 Received new post via socket:", newPost);
       
-      // Check if post should be displayed using same logic as fetch
-      const hasDisasterKeywords = newPost.content && (
-        newPost.content.toLowerCase().includes('flood') ||
-        newPost.content.toLowerCase().includes('emergency') ||
-        newPost.content.toLowerCase().includes('help') ||
-        newPost.content.toLowerCase().includes('urgent') ||
-        newPost.content.toLowerCase().includes('cyclone') ||
-        newPost.content.toLowerCase().includes('storm') ||
-        newPost.content.toLowerCase().includes('rain') ||
-        newPost.content.toLowerCase().includes('disaster') ||
-        newPost.content.toLowerCase().includes('dub') ||
-        newPost.content.toLowerCase().includes('bachao')
-      );
-      
-      const hasValidSeverity = newPost.severityPrediction && 
-        ['high_risk', 'mild_risk', 'low_risk'].includes(newPost.severityPrediction);
-      
-      if (hasDisasterKeywords || hasValidSeverity) {
+      // Use the reusable filter function
+      if (isDisasterPost(newPost)) {
         // Process location name for the new post
         let locationName = newPost.location;
         if (newPost.location) {
@@ -321,7 +707,9 @@ if (Array.isArray(res.data)) {
     // Fetch user data
     fetchUser();
     
-    return () => clearTimeout(loadingTimer);
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   // New useEffect to manage the copied message
@@ -334,7 +722,7 @@ if (Array.isArray(res.data)) {
     }
   }, [copiedPostId]);
 
-const handleUpvote = async (postId) => {
+const handleUpvote = useCallback(async (postId) => {
   setUpvotes((prevUpvotes) => ({
     ...prevUpvotes,
     [postId]: (prevUpvotes[postId] || 0) + 1,
@@ -348,20 +736,21 @@ const handleUpvote = async (postId) => {
   } catch (error) {
     console.error("Upvote failed:", error);
   }
-};
-  const handleShare = (postId) => {
-    setShareModal(postId);
-  };
+}, []);
 
-  const handleCopyLink = (postId) => {
+  const handleShare = useCallback((postId) => {
+    setShareModal(postId);
+  }, []);
+
+  const handleCopyLink = useCallback((postId) => {
     const postUrl = `${window.location.origin}/reports/${postId}`;
     navigator.clipboard.writeText(postUrl).then(() => {
       setCopiedPostId(postId);
       setShareModal(null);
     });
-  };
+  }, []);
 
-  const handleSocialShare = (platform, postId) => {
+  const handleSocialShare = useCallback((platform, postId) => {
     const postUrl = `${window.location.origin}/reports/${postId}`;
     const text = "Check out this disaster report from our community:";
     
@@ -376,16 +765,16 @@ const handleUpvote = async (postId) => {
         break;
     }
     setShareModal(null);
-  };
+  }, []);
 
-  const handleToggleComments = (postId) => {
+  const handleToggleComments = useCallback((postId) => {
     setShowComments(prev => ({
       ...prev,
       [postId]: !prev[postId]
     }));
-  };
+  }, []);
 
-  const handleAddComment = (postId) => {
+  const handleAddComment = useCallback((postId) => {
     const commentText = newComment[postId]?.trim();
     if (!commentText) return;
 
@@ -405,21 +794,16 @@ const handleUpvote = async (postId) => {
       ...prev,
       [postId]: ''
     }));
-  };
+  }, [newComment, user?.name]);
 
-  // Polling fallback to keep posts fresh if socket isn't updating
+  // Polling fallback to keep posts fresh only when socket is disconnected
   useEffect(() => {
-    // Start polling if not connected or if no posts yet
-    const shouldPoll = !socketConnected;
-    if (!shouldPoll) return;
+    if (socketConnected) return; // Only poll when disconnected
 
     console.log('🕒 Starting polling fallback for reports...');
     const interval = setInterval(() => {
       refreshPosts();
-    }, 15000); // every 15s
-
-    // Do an immediate refresh when polling starts
-    refreshPosts();
+    }, 30000); // Reduced frequency: every 30s instead of 15s
 
     return () => {
       clearInterval(interval);
@@ -427,7 +811,7 @@ const handleUpvote = async (postId) => {
     };
   }, [socketConnected]);
 
-  const refreshPosts = async () => {
+  const refreshPosts = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const res = await axios.get(
@@ -437,58 +821,140 @@ const handleUpvote = async (postId) => {
       if (Array.isArray(res.data)) {
         const severityOrder = { high_risk: 1, mild_risk: 2, low_risk: 3 };
 
-        const filtered = await Promise.all(
-          res.data
-            .filter(post => {
-              const hasDisasterKeywords = post.content && (
-                post.content.toLowerCase().includes('flood') ||
-                post.content.toLowerCase().includes('emergency') ||
-                post.content.toLowerCase().includes('help') ||
-                post.content.toLowerCase().includes('urgent') ||
-                post.content.toLowerCase().includes('cyclone') ||
-                post.content.toLowerCase().includes('storm') ||
-                post.content.toLowerCase().includes('rain') ||
-                post.content.toLowerCase().includes('disaster') ||
-                post.content.toLowerCase().includes('dub') ||
-                post.content.toLowerCase().includes('bachao')
-              );
-              
-              const hasValidSeverity = post.severityPrediction && 
-                ['high_risk', 'mild_risk', 'low_risk'].includes(post.severityPrediction);
-              
-              return hasDisasterKeywords || hasValidSeverity;
-            })
-            .sort((a, b) => {
-              const severityA = severityOrder[a.severityPrediction] || 99;
-              const severityB = severityOrder[b.severityPrediction] || 99;
-              return severityA !== severityB
-                ? severityA - severityB
-                : new Date(b.createdAt) - new Date(a.createdAt);
-            })
-            .map(async (post) => {
-              let locationName = post.location;
-              if (post.location) {
-                const [lat, lon] = post.location.split(",").map(v => v.trim());
-                if (!isNaN(lat) && !isNaN(lon)) {
-                  const name = await reverseGeocode(lat, lon);
-                  if (name) locationName = name;
-                }
-              }
-              return { ...post, locationName };
-            })
-        );
+        // Filter and sort all posts
+        const filteredPosts = res.data
+          .filter(isDisasterPost)
+          .sort((a, b) => {
+            const severityA = severityOrder[a.severityPrediction] || 99;
+            const severityB = severityOrder[b.severityPrediction] || 99;
+            return severityA !== severityB
+              ? severityA - severityB
+              : new Date(b.createdAt) - new Date(a.createdAt);
+          });
 
-        setPosts(filtered);
-        console.log("✅ Posts refreshed successfully:", filtered.length);
+        // Update all posts data
+        setAllPostsData(filteredPosts);
+        
+        // Reset to first page and load initial posts
+        const initialPosts = filteredPosts.slice(0, POSTS_PER_PAGE);
+        setPosts(initialPosts);
+        setCurrentPage(1);
+        setHasMorePosts(filteredPosts.length > POSTS_PER_PAGE);
+        
+        console.log("✅ Posts refreshed successfully:", initialPosts.length, "of", filteredPosts.length);
       }
     } catch (err) {
       console.error("Error refreshing posts:", err);
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [isDisasterPost, POSTS_PER_PAGE]);
 
-  const getSeverityBadge = (severity, postContent = '') => {
+  // Load more posts with lazy geocoding
+  const loadMorePosts = useCallback(async () => {
+    if (isLoadingMore || !hasMorePosts) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const startIndex = currentPage * POSTS_PER_PAGE;
+      const endIndex = startIndex + POSTS_PER_PAGE;
+      const nextPagePosts = allPostsData.slice(startIndex, endIndex);
+      
+      if (nextPagePosts.length > 0) {
+        // INSTANT LOADING: Add posts immediately without geocoding
+        setPosts(prevPosts => [...prevPosts, ...nextPagePosts]);
+        
+        console.log(`⚡ Added ${nextPagePosts.length} posts instantly! Geocoding in background...`);
+        
+        // BACKGROUND GEOCODING: Process locations after posts are shown
+        setTimeout(() => {
+          nextPagePosts.forEach(async (post, index) => {
+            if (post.location && typeof post.location === 'string') {
+              const locationParts = post.location.split(",").map(v => v.trim());
+              if (locationParts.length === 2) {
+                const [lat, lon] = locationParts;
+                const latNum = parseFloat(lat);
+                const lonNum = parseFloat(lon);
+                
+                if (!isNaN(latNum) && !isNaN(lonNum) && Math.abs(latNum) <= 90 && Math.abs(lonNum) <= 180) {
+                  // Mark this post as loading
+                  setLoadingLocations(prev => new Set(prev).add(post._id));
+                  
+                  console.log(`🌍 Background geocoding more post ${index + 1}/${nextPagePosts.length}: ${lat}, ${lon}`);
+                  try {
+                    const locationName = await reverseGeocode(lat, lon);
+                    if (locationName && locationName !== post.location) {
+                      // Update the specific post
+                      setPosts(prevPosts => 
+                        prevPosts.map(p => 
+                          p._id === post._id 
+                            ? { ...p, locationName }
+                            : p
+                        )
+                      );
+                      console.log(`✅ Updated location for more post ${post._id}: ${locationName}`);
+                    }
+                  } catch (error) {
+                    console.warn(`⚠️ Geocoding failed for ${lat}, ${lon}:`, error);
+                  } finally {
+                    // Remove loading state
+                    setLoadingLocations(prev => {
+                      const newSet = new Set(prev);
+                      newSet.delete(post._id);
+                      return newSet;
+                    });
+                  }
+                }
+              }
+            }
+          });
+        }, 50);
+        
+        setCurrentPage(prev => prev + 1);
+        setHasMorePosts(endIndex < allPostsData.length);
+        
+        // Initialize comments for new posts
+        setComments(prevComments => {
+          const newComments = { ...prevComments };
+          nextPagePosts.forEach(post => {
+            newComments[post._id] = [];
+          });
+          return newComments;
+        });
+        
+        console.log(`✅ Loaded ${nextPagePosts.length} more posts instantly! (${endIndex}/${allPostsData.length})`);
+      } else {
+        setHasMorePosts(false);
+      }
+    } catch (err) {
+      console.error("Error loading more posts:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, POSTS_PER_PAGE, allPostsData, hasMorePosts, isLoadingMore, locationCache, reverseGeocode]);
+
+  // Infinite scroll observer
+  const loadMoreRef = useRef();
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMorePosts && !isLoadingMore) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loadMorePosts, hasMorePosts, isLoadingMore]);
+
+  const getSeverityBadge = useCallback((severity, postContent = '') => {
     // Override non_disaster if post has emergency keywords
     if (severity === 'non_disaster' && postContent) {
       const emergencyKeywords = ['emergency', 'urgent', 'help', 'bachao', 'dub', 'flood', 'cyclone'];
@@ -507,32 +973,28 @@ const handleUpvote = async (postId) => {
       non_disaster: { label: 'Report', class: 'report', icon: '📝' }
     };
     return severityMap[severity] || { label: 'Community Post', class: 'community', icon: '💬' };
-  };
+  }, []);
 
-  const filteredPosts = posts.filter(post => {
-    const matchesFilter = filter === 'all' || post.severityPrediction === filter;
-    const matchesSearch = post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.locationName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && (searchTerm === '' || matchesSearch);
-  });
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const matchesFilter = filter === 'all' || post.severityPrediction === filter;
+      const matchesSearch = searchTerm === '' || 
+        post.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        post.locationName?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [posts, filter, searchTerm]);
 
   return (
     <div className="reports-container">
       <UserDashboardNavbar user={user} />
       
-      {/* Enhanced Loading Screen */}
+      {/* Simple loading state - no overlay */}
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-content">
-            <div className="loading-spinner"></div>
-            <h2 className="loading-title">Loading Community Reports</h2>
-            <div className="loading-progress">
-              <div 
-                className="loading-progress-bar" 
-                style={{ width: `${loadingProgress}%` }}
-              ></div>
-            </div>
-            <p className="loading-text">{loadingProgress < 50 ? 'Fetching latest updates...' : loadingProgress < 90 ? 'Processing locations...' : 'Almost ready!'}</p>
+        <div className="reports-main-content">
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <p>Loading community reports...</p>
           </div>
         </div>
       )}
@@ -624,6 +1086,14 @@ const handleUpvote = async (postId) => {
 
         {/* Reports Grid */}
         <div className="reports-grid">
+          {/* Show loading skeletons during initial load */}
+          {isLoading && (
+            Array.from({ length: POSTS_PER_PAGE }, (_, i) => (
+              <SkeletonCard key={`skeleton-${i}`} />
+            ))
+          )}
+          
+          {/* Show actual posts */}
           {!isLoading && filteredPosts.length === 0 ? (
             <div className="no-reports">
               <AlertTriangle className="no-reports-icon" />
@@ -635,168 +1105,72 @@ const handleUpvote = async (postId) => {
               </p>
             </div>
           ) : (
-            filteredPosts.map((post) => {
-              const severity = getSeverityBadge(post.severityPrediction, post.content);
-              const postId = post._id || post.id;
+            <>
+              {filteredPosts.map((post) => (
+                <PostCard
+                  key={post._id || post.id}
+                  post={post}
+                  getSeverityBadge={getSeverityBadge}
+                  upvotes={upvotes}
+                  handleUpvote={handleUpvote}
+                  handleToggleComments={handleToggleComments}
+                  handleShare={handleShare}
+                  copiedPostId={copiedPostId}
+                  showComments={showComments}
+                  comments={comments}
+                  newComment={newComment}
+                  setNewComment={setNewComment}
+                  handleAddComment={handleAddComment}
+                  user={user}
+                  isLoadingLocation={loadingLocations.has(post._id)}
+                />
+              ))}
               
-              return (
-                <article key={postId} className="post-card">
-                  {/* Post Header */}
-                  <header className="post-header">
-                    <div className="post-author">
-                      <div className="post-avatar">
-                        {post.author?.avatar || post.user?.avatar ? (
-                          <img
-                            src={post.author?.avatar || post.user?.avatar}
-                            alt={`${post.author?.name || post.user?.name || 'User'}'s Avatar`}
-                            onError={(e) => {
-                              e.target.src = "https://placehold.co/48x48/1e40af/ffffff?text=" + ((post.author?.name || post.user?.name || 'U').charAt(0));
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={`https://placehold.co/48x48/1e40af/ffffff?text=${(post.author?.name || post.user?.name || post.username || 'U').charAt(0)}`}
-                            alt="User Avatar"
-                          />
-                        )}
-                      </div>
-                      <div className="post-info">
-                        <div className="post-username">{post.author?.name || post.user?.name || post.username || 'Anonymous Reporter'}</div>
-                        <div className="post-meta">
-                          <Clock className="meta-icon" />
-                          <span>{new Date(post.createdAt || Date.now()).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="post-severity-badge">
-                      <span className={`severity-badge ${severity.class}`}>
-                        {severity.icon} {severity.label}
-                      </span>
-                    </div>
-                  </header>
-
-                  {/* Post Content */}
-                  <div className="post-content">
-                    {post.content && <p className="post-text">{post.content}</p>}
-                    
-                    {/* Location */}
-                    {post.location && (
-                      <div className="post-location">
-                        <MapPin className="location-icon" />
-                        <span>{post.locationName || post.location}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Media */}
-                  {post.files?.length > 0 && (
-                    <div className="post-media">
-                      {post.files.map((fileObj, index) => (
-                        <div key={index} className="post-media-item">
-                          {fileObj.type === "image" && (
-                            <img
-                              src={fileObj.url}
-                              alt="Report Media"
-                              className="post-image"
-                              loading="lazy"
-                            />
-                          )}
-                          {fileObj.type === "video" && (
-                            <div className="media-placeholder video-placeholder">
-                              <Video className="media-icon" />
-                              <span>Video Report</span>
-                            </div>
-                          )}
-                          {fileObj.type === "audio" && (
-                            <div className="media-placeholder audio-placeholder">
-                              <Mic className="media-icon" />
-                              <span>Audio Report</span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Post Actions */}
-                  <div className="post-actions">
-                    <button
-                      className={`action-button ${upvotes[postId] ? 'upvoted' : ''}`}
-                      onClick={() => handleUpvote(postId)}
-                    >
-                      <ChevronUp className="action-icon" />
-                      <span>{upvotes[postId] || 0} Upvotes</span>
-                    </button>
-                    
-                    <button
-                      className="action-button"
-                      onClick={() => handleToggleComments(postId)}
-                    >
-                      <MessageCircle className="action-icon" />
-                      <span>{comments[postId]?.length || 0} Comments</span>
-                    </button>
-                    
-                    <button
-                      className="action-button"
-                      onClick={() => handleShare(postId)}
-                    >
-                      <Share2 className="action-icon" />
-                      <span>Share</span>
-                    </button>
-
-                    {copiedPostId === postId && (
-                      <div className="copy-notification">✓ Link copied!</div>
-                    )}
-                  </div>
-
-                  {/* Comments Section */}
-                  {showComments[postId] && (
-                    <div className="comments-section">
-                      <div className="comments-header">
-                        <h4>Comments ({comments[postId]?.length || 0})</h4>
-                      </div>
-                      
-                      {/* Comment Input */}
-                      <div className="comment-input">
-                        <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          value={newComment[postId] || ''}
-                          onChange={(e) => setNewComment(prev => ({
-                            ...prev,
-                            [postId]: e.target.value
-                          }))}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddComment(postId)}
-                          className="comment-field"
-                        />
-                        <button
-                          onClick={() => handleAddComment(postId)}
-                          className="comment-submit"
-                        >
-                          <Send className="send-icon" />
-                        </button>
-                      </div>
-
-                      {/* Comments List */}
-                      <div className="comments-list">
-                        {comments[postId]?.map((comment) => (
-                          <div key={comment.id} className="comment">
-                            <div className="comment-avatar">
-                              <User className="comment-user-icon" />
-                            </div>
-                            <div className="comment-content">
-                              <div className="comment-author">{comment.author}</div>
-                              <div className="comment-text">{comment.text}</div>
-                              <div className="comment-time">{comment.timestamp}</div>
-                            </div>
-                          </div>
+              {/* Infinite scroll trigger and loading more indicator */}
+              {hasMorePosts && (
+                <div ref={loadMoreRef} className="load-more-trigger" style={{ padding: '2rem', textAlign: 'center' }}>
+                  {isLoadingMore ? (
+                    <>
+                      <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+                      <p>Loading more reports...</p>
+                      {/* Show skeleton cards while loading more */}
+                      <div style={{ display: 'grid', gap: 'var(--space-6)', marginTop: '1rem' }}>
+                        {Array.from({ length: 3 }, (_, i) => (
+                          <SkeletonCard key={`loading-skeleton-${i}`} />
                         ))}
                       </div>
-                    </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Scroll down to load more reports...</p>
+                      <button 
+                        onClick={loadMorePosts}
+                        disabled={isLoadingMore}
+                        style={{
+                          marginTop: '1rem',
+                          padding: '0.75rem 1.5rem',
+                          backgroundColor: 'var(--primary)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Load More Posts
+                      </button>
+                    </>
                   )}
-                </article>
-              );
-            })
+                </div>
+              )}
+              
+              {!hasMorePosts && posts.length > 0 && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p>You've reached the end! ✨</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
