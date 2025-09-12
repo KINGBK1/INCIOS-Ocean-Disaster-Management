@@ -1,7 +1,7 @@
 import express from "express";
 import { createPost, getPosts, getPostById, deletePost } from "../controllers/postController.js";
 import { upvotePost } from "../controllers/upvoteController.js"; // Import the correct controller
-import { authMiddleware } from "../middleware/authMiddleware.js"; // Import auth middleware
+import { authMiddleware } from "../middlewares/authMiddleware.js"; // Import auth middleware
 import multer from "multer";
 
 const router = express.Router();

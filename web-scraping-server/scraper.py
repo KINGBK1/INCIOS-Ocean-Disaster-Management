@@ -10,7 +10,7 @@ import time
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 client = MongoClient("mongodb+srv://null_pointers_db:Bk14042005%40@cluster0.2vhx9q1.mongodb.net/")
-db = client["INCIOS_DMS"]
+db = client["VARUNA_DMS"]
 
 alerts_collection = db["coastline_alerts"]
 past90days_collection = db["past90days_alerts"]
@@ -31,7 +31,7 @@ def get_coordinates(place_name: str):
     try:
         url = "https://nominatim.openstreetmap.org/search"
         params = {"q": place_name, "format": "json", "limit": 1}
-        resp = requests.get(url, params=params, headers={"User-Agent": "INCIOS-App"}, timeout=10)
+        resp = requests.get(url, params=params, headers={"User-Agent": "VARUNA-App"}, timeout=10)
 
         if resp.status_code == 200 and resp.json():
             lat = float(resp.json()[0]["lat"])

@@ -18,6 +18,7 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://incios-ocean-disaster-management.onrender.com",
   "https://incios-ocean-disaster-management.vercel.app",
 ];
@@ -65,7 +66,7 @@ app.use((err, req, res, next) => {
 
 // DB Connection
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => {
     console.error("MongoDB connection failed:", err);

@@ -200,10 +200,15 @@ const UserDashboard = () => {
   // ---------------------------------------------------------------
 
   useEffect(() => {
-    const fetchUser = async () => {
+  const fetchUser = async () => {
       try {
         const token = Cookies.get("token");
-        if (!token) throw new Error("No token found");
+        if (!token) {
+          console.log('No token found, redirecting to login');
+          navigate('/signin');
+          return;
+        }
+        
         const res = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/api/auth/status`,
           {
@@ -217,23 +222,59 @@ const UserDashboard = () => {
         );
         
         if (!res.ok) {
+          console.error('Failed to fetch user data, status:', res.status);
+          if (res.status === 401) {
+            // Token expired or invalid
+            Cookies.remove('token');
+            navigate('/signin');
+            return;
+          }
           throw new Error('Failed to fetch user data');
         }
         
         const data = await res.json();
-        console.log('User data fetched:', data); // Debug log
+        console.log('Raw user data response:', data); // Debug log
         
-        // Handle different response structures
-        const userData = data.user || data.data || data;
-        setUser(userData);
+        // Handle different response structures - flexible for existing backend
+        let userData;
+        if (data.success && data.user) {
+          userData = data.user;
+        } else if (data.user) {
+          userData = data.user;
+        } else if (data.message === "Authenticated" && data.user) {
+          userData = data.user;
+        } else {
+          console.log('Backend response structure:', data);
+          // Try to use the data directly if it has user fields
+          userData = data;
+        }
+        
+        // Normalize user data structure - handle both old and new field names
+        const normalizedUser = {
+          name: userData.name || userData.username || 'Unknown User',
+          email: userData.email || 'No email provided', 
+          id: userData.id || userData._id || 'unknown',
+          avatar: userData.avatar || userData.picture || userData.profilePicture || null,
+          role: userData.role || 'user',
+          officialId: userData.officialId || null,
+          location: userData.location || null,
+          isApproved: userData.isApproved !== undefined ? userData.isApproved : true
+        };
+        
+        console.log('Normalized user data:', normalizedUser);
+        setUser(normalizedUser);
+        
       } catch (err) {
         console.error("Error fetching user:", err);
-        // Set a fallback user for development
-        setUser({
+        // Set a fallback user for development/demo
+        const fallbackUser = {
           name: "Demo User",
-          email: "demo@example.com",
-          id: "demo"
-        });
+          email: "demo@varuna.gov.in",
+          id: "demo-user",
+          avatar: null,
+          role: "user"
+        };
+        setUser(fallbackUser);
       }
     };
 
@@ -255,9 +296,8 @@ const UserDashboard = () => {
 
     const fetchPosts = async () => {
       try {
-        const apiUrl =
-          "https://incios-ocean-disaster-management.onrender.com/api/posts";
-        const res = await fetch(apiUrl, { 
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/posts`, { 
           method: 'GET',
           credentials: 'include' 
         });

@@ -41,6 +41,7 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import "./Reports.css";
 import UserDashboardNavbar from "../Dashboard/Navbar/UserDashboardNav";
+import Footer from "../Footer/Footer";
 
 
 // --- Skeleton Card Component ---
@@ -121,6 +122,67 @@ const reverseGeocode = async (lat, lon) => {
     };
   }, []);
 
+  // Fetch user data
+  const fetchUser = async () => {
+    try {
+      const token = Cookies.get("token");
+      if (!token) {
+        console.log('No token found for user fetch');
+        return;
+      }
+      
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/status`,
+        {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        }
+      );
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log('User data for reports:', data);
+        
+        // Handle different response structures
+        let userData;
+        if (data.success && data.user) {
+          userData = data.user;
+        } else if (data.user) {
+          userData = data.user;
+        } else {
+          console.warn('Unexpected user data structure:', data);
+          userData = data;
+        }
+        
+        // Normalize user data structure with proper field mapping
+        const normalizedUser = {
+          name: userData.name || userData.username || 'Anonymous User',
+          email: userData.email || 'No email provided',
+          id: userData.id || userData._id || 'unknown',
+          avatar: userData.avatar || userData.picture || null,
+          role: userData.role || 'user',
+          officialId: userData.officialId || null,
+          location: userData.location || null,
+          isApproved: userData.isApproved !== undefined ? userData.isApproved : true
+        };
+        
+        setUser(normalizedUser);
+      }
+    } catch (err) {
+      console.error("Error fetching user for reports:", err);
+      setUser({
+        name: "Demo User",
+        email: "demo@varuna.gov.in",
+        id: "demo-user",
+        avatar: null
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -191,6 +253,9 @@ if (Array.isArray(res.data)) {
     socket.on("newPost", (newPost) => setPosts((prev) => [newPost, ...prev]));
     socket.on("zoneUpdate", (updatedZones) => setZones(updatedZones));
 
+    // Fetch user data
+    fetchUser();
+    
     return () => clearTimeout(loadingTimer);
   }, []);
 
@@ -262,7 +327,7 @@ const handleUpvote = async (postId) => {
     const comment = {
       id: Date.now(),
       text: commentText,
-      author: 'Anonymous User',
+      author: user?.name || 'Anonymous User',
       timestamp: new Date().toLocaleString()
     };
 
@@ -409,13 +474,23 @@ const handleUpvote = async (postId) => {
                   <header className="post-header">
                     <div className="post-author">
                       <div className="post-avatar">
-                        <img
-                          src="https://placehold.co/48x48/007bff/ffffff?text=👤"
-                          alt="User Avatar"
-                        />
+                        {post.author?.avatar || post.user?.avatar ? (
+                          <img
+                            src={post.author?.avatar || post.user?.avatar}
+                            alt={`${post.author?.name || post.user?.name || 'User'}'s Avatar`}
+                            onError={(e) => {
+                              e.target.src = "https://placehold.co/48x48/1e40af/ffffff?text=" + ((post.author?.name || post.user?.name || 'U').charAt(0));
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={`https://placehold.co/48x48/1e40af/ffffff?text=${(post.author?.name || post.user?.name || post.username || 'U').charAt(0)}`}
+                            alt="User Avatar"
+                          />
+                        )}
                       </div>
                       <div className="post-info">
-                        <div className="post-username">Anonymous Reporter</div>
+                        <div className="post-username">{post.author?.name || post.user?.name || post.username || 'Anonymous Reporter'}</div>
                         <div className="post-meta">
                           <Clock className="meta-icon" />
                           <span>{new Date(post.createdAt || Date.now()).toLocaleDateString()}</span>
@@ -591,6 +666,7 @@ const handleUpvote = async (postId) => {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 };

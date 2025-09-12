@@ -28,9 +28,10 @@ const UserDashboardNavbar = ({ user }) => {
   const profileRef = useRef(null);
 
   const safeUser = user || {
-    name: "Guest User",
-    email: "guest@example.com",
+    name: "Loading...",
+    email: "Loading...",
     avatar: null,
+    role: "user"
   };
 
   // Close profile dropdown when clicking outside
@@ -84,8 +85,8 @@ const UserDashboardNavbar = ({ user }) => {
             <Shield className="logo-icon" />
           </div>
           <div className="brand-text">
-            <h1 className="brand-title">INCOIS</h1>
-            <span className="brand-subtitle">Disaster Management</span>
+            <h1 className="brand-title">VARUNA</h1>
+            <span className="brand-subtitle">Ocean Disaster Management</span>
           </div>
         </div>
 
@@ -126,14 +127,32 @@ const UserDashboardNavbar = ({ user }) => {
                     src={safeUser.avatar}
                     alt="Profile"
                     className="avatar-img"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
                   />
-                ) : (
-                  <User className="avatar-icon" />
-                )}
+                ) : null}
+                <div 
+                  className="avatar-fallback"
+                  style={{
+                    display: safeUser?.avatar ? 'none' : 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: '#e2e8f0',
+                    color: '#64748b',
+                    fontSize: '1rem',
+                    fontWeight: '600'
+                  }}
+                >
+                  {safeUser?.name?.charAt(0)?.toUpperCase() || <User className="avatar-icon" />}
+                </div>
               </div>
               <div className="profile-info">
-                <span className="profile-name">{safeUser?.name}</span>
-                <span className="profile-role">Administrator</span>
+                <span className="profile-name">{safeUser?.name || "User"}</span>
+                <span className="profile-role">{safeUser?.role === "admin" ? "Administrator" : safeUser?.role === "ngo" ? "NGO" : safeUser?.role === "ddmo" ? "DDMO Official" : "User"}</span>
               </div>
               <ChevronDown
                 className={`profile-arrow ${isProfileOpen ? "open" : ""}`}
@@ -149,15 +168,32 @@ const UserDashboardNavbar = ({ user }) => {
                       src={safeUser.avatar}
                       alt="Profile"
                       className="dropdown-avatar-img"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <User className="dropdown-avatar-icon" />
-                  )}
+                  ) : null}
+                  <div 
+                    className="dropdown-avatar-fallback"
+                    style={{
+                      display: safeUser?.avatar ? 'none' : 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: '#e2e8f0',
+                      color: '#64748b',
+                      fontSize: '1.2rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    {safeUser?.name?.charAt(0)?.toUpperCase() || <User className="dropdown-avatar-icon" />}
+                  </div>
                 </div>
                 <div className="dropdown-user-info">
-                  <p className="dropdown-name">{safeUser?.name}</p>
-                  <p className="dropdown-email">{safeUser?.email}</p>
-                
+                  <p className="dropdown-name">{safeUser?.name || "User"}</p>
+                  <p className="dropdown-email">{safeUser?.email || "No email provided"}</p>
                 </div>
               </div>
 

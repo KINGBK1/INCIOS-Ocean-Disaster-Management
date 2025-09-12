@@ -4,7 +4,7 @@ export const reverseGeocode = async (lat, lon) => {
   try {
     const res = await axios.get("https://nominatim.openstreetmap.org/reverse", {
       params: { format: "json", lat, lon },
-      headers: { "User-Agent": "INCIOS/1.0 (your-email@example.com)" }, // Nominatim requires this
+      headers: { "User-Agent": "VARUNA/1.0 (your-email@example.com)" }, // Nominatim requires this
     });
 
     const data = res.data;

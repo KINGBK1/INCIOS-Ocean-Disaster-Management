@@ -260,10 +260,10 @@ const SignUpPage = () => {
         <div className="signup-layout__visuals">
           <div className="brand__logo-container">
             <Shield size={40} className="brand__logo" />
-            <h2 className="brand__name">INCIOS</h2>
+            <h2 className="brand__name">VARUNA</h2>
           </div>
           <div className="visuals__content">
-            <h1 className="visuals__title">Welcome to INCIOS</h1>
+            <h1 className="visuals__title">Welcome to VARUNA</h1>
             <p className="visuals__text">
               A unified platform for effective disaster management and response.
               Join us in building a resilient nation.

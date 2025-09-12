@@ -8,8 +8,19 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/google-login", googleLogin);
 router.get("/status", authMiddleware, (req, res) => {
-  res.json({ message: "Authenticated", user: req.user });
-}) ; 
+  const user = req.user;
+  const userData = {
+    id: user._id,
+    name: user.username,
+    email: user.email,
+    avatar: user.picture || null,
+    role: user.role,
+    officialId: user.officialId,
+    location: user.location,
+    isApproved: user.isApproved
+  };
+  res.json({ success: true, user: userData });
+});
 
 // only admin can approve NGO/DDMO/Admin signups
 router.patch("/approve/:id", authMiddleware, authorizeRoles("admin"), approveUser);
