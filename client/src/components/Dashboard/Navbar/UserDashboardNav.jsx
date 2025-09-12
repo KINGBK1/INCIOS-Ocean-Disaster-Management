@@ -11,12 +11,12 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Shield,
   Activity,
 } from "lucide-react";
 import { useNavigate, Link, NavLink, useLocation } from "react-router-dom";
 import { AuthContext } from "../../Auth/context/AuthContext"; // Import AuthContext
 import "./UserDashboardNav.css";
+import varunaLogo from "../../../assets/varuna.png";
 
 const UserDashboardNavbar = ({ user }) => {
   const navigate = useNavigate();
@@ -68,6 +68,10 @@ const UserDashboardNavbar = ({ user }) => {
     setNotifications(0);
   };
 
+  const handleBrandClick = () => {
+    navigate("/dashboard");
+  };
+
   const navItems = [
     { name: "Dashboard", icon: Home, href: "/dashboard" },
     { name: "Live Map", icon: Map, href: "/map" },
@@ -80,9 +84,9 @@ const UserDashboardNavbar = ({ user }) => {
     <nav className="navbar">
       <div className="navbar-container">
         {/* Logo Section */}
-        <div className="navbar-brand">
+        <div className="navbar-brand" onClick={handleBrandClick} style={{ cursor: 'pointer' }}>
           <div className="brand-logo">
-            <Shield className="logo-icon" />
+            <img src={varunaLogo} alt="Varuna Logo" className="logo-icon" width={48} height={48} />
           </div>
           <div className="brand-text">
             <h1 className="brand-title">VARUNA</h1>

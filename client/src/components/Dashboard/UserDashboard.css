@@ -123,7 +123,8 @@ nav {
 }
 
 .section-title {
-  font-size: 1.25rem;
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--gray-900);
   margin-bottom: var(--space-1);
@@ -131,6 +132,7 @@ nav {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  letter-spacing: -0.02em;
 }
 
 .section-icon {
@@ -229,12 +231,14 @@ nav {
 }
 
 .legend-title {
+  font-family: 'Figtree', sans-serif;
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: var(--gray-900);
   margin-bottom: var(--space-2);
   padding-bottom: var(--space-1);
   border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+  letter-spacing: -0.01em;
 }
 
 .legend-items {
@@ -290,14 +294,17 @@ nav {
 }
 
 .create-post-container .section-header {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
   color: white;
   border-bottom: none;
 }
 
 .create-post-container .section-title {
   color: white;
-  font-size: 1.25rem;
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .create-post-container .section-subtitle {
@@ -329,8 +336,8 @@ nav {
 
 .post-textarea:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--gray-700);
+  box-shadow: 0 0 0 3px rgba(55, 65, 81, 0.1);
 }
 
 /* File Preview */
@@ -396,11 +403,11 @@ nav {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
   border-radius: 6px;
   margin: var(--space-4) 0;
-  color: var(--primary);
+  color: var(--gray-700);
   font-size: 0.875rem;
 }
 
@@ -441,14 +448,14 @@ nav {
 }
 
 .action-buttons button:nth-child(3) {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--gray-800);
+  border-color: var(--gray-800);
   color: white;
 }
 
 .action-buttons button:nth-child(3):hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
+  background: var(--gray-700);
+  border-color: var(--gray-700);
 }
 
 .action-buttons button:disabled {
@@ -491,11 +498,35 @@ nav {
   gap: var(--space-8);
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Figtree:wght@400;500;600;700;800&display=swap');
+
 .footer-section h3 {
-  font-size: 1rem;
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--gray-900);
   margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.footer-section h3.varuna-brand {
+  font-family: 'Space Mono', monospace !important;
+  letter-spacing: 0.1em !important;
+}
+
+.varuna-brand {
+  font-family: 'Space Mono', monospace !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  color: rgb(31, 31, 75) !important;
+  letter-spacing: 0.1em !important;
+  -webkit-text-stroke: 0.5px rgb(31, 31, 75) !important;
+  text-stroke: 0.5px rgb(31, 31, 75) !important;
+}
+
+.footer-bottom .varuna-brand {
+  font-size: 0.875rem !important;
+  display: inline !important;
 }
 
 .footer-section p,
@@ -520,7 +551,7 @@ nav {
 }
 
 .footer-section a:hover {
-  color: var(--primary);
+  color: var(--gray-800);
 }
 
 .footer-bottom {
@@ -563,7 +594,7 @@ nav {
 }
 
 .coastline-popup h4 {
-  color: var(--primary) !important;
+  color: var(--gray-800) !important;
   margin-bottom: var(--space-2) !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
@@ -781,7 +812,7 @@ nav {
 .action-buttons button:focus-visible,
 .media-button:focus-visible,
 .post-textarea:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--gray-700);
   outline-offset: 2px;
 }
 
@@ -792,7 +823,7 @@ nav {
   right: 20px;
   width: 50px;
   height: 50px;
-  background: var(--primary);
+  background: var(--gray-800);
   color: white;
   border: none;
   border-radius: 50%;
@@ -815,7 +846,7 @@ nav {
 }
 
 .mobile-scroll-button:hover {
-  background: var(--primary-dark);
+  background: var(--gray-700);
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.2);
 }

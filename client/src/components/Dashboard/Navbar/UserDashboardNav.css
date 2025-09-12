@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 /* General Styling & Variables */
 :root {
   --primary-color: #1e40af; /* Government Blue */
@@ -85,32 +87,29 @@ body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
-  border-radius: 12px;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
+
 }
 
 .brand-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--primary-color);
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgb(31, 31, 75);
+  letter-spacing: 0.1em;
+  font-family: 'Space Mono', monospace;
+  -webkit-text-stroke: 0.5px rgb(31, 31, 75);
+  text-stroke: 0.5px rgb(31, 31, 75);
+  font-stretch: condensed;
 }
 
 .brand-subtitle {
@@ -135,23 +134,26 @@ body, #root {
   align-items: center;
   gap: 0.6rem;
   color: var(--text-light-color);
-  font-weight: 500;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
   text-decoration: none;
   padding: 1.25rem 1rem 1rem 1rem;
   transition: all 0.2s ease;
   position: relative;
   background: transparent;
   border-bottom: 3px solid transparent;
+  letter-spacing: 0.02em;
 }
 
 .nav-item:hover {
-  color: var(--primary-color);
-  border-bottom-color: rgba(30, 64, 175, 0.3);
+   color: rgb(18, 18, 42);
+   
+ 
 }
 
 .nav-item.active {
-  color: var(--primary-color);
-  font-weight: 600;
+  color: rgb(31, 31, 75);
+  font-weight: 700;
 }
 
 .nav-icon {
@@ -161,6 +163,9 @@ body, #root {
 
 .nav-text {
   font-size: 0.95rem;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 /* Right Section */
@@ -437,6 +442,9 @@ body, #root {
   color: var(--text-color);
   text-decoration: none;
   transition: var(--transition-fast);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 .mobile-nav-item:hover {
@@ -445,8 +453,8 @@ body, #root {
 
 .mobile-nav-item.active {
   background-color: #e0f0ff;
-  color: var(--primary-color);
-  font-weight: 600;
+  color: rgb(31, 31, 75);
+  font-weight: 700;
 }
 
 .mobile-nav-icon {
@@ -456,6 +464,9 @@ body, #root {
 
 .mobile-nav-text {
   font-size: 1rem;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 .mobile-overlay {

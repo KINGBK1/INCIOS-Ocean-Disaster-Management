@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../Auth/context/AuthContext";
 import TriColorAnimation from "../TriColorAnimation/TriColorAnimation";
 import nightImage from "../../../assets/night-mountain-city.jpg";
+import varunaLogo from "../../../assets/varuna.png";
 
 const SignUpPage = () => {
   const navigate = useNavigate();
@@ -284,7 +285,7 @@ const SignUpPage = () => {
             <div className="bottom__branding">
               <div className="brand__logo-container">
                 <div className="brand__logo">
-                  <Shield size={32} className="brand__icon" />
+                  <img src={varunaLogo} alt="Varuna Logo" className="brand__icon" width={60} height={60} />
                 </div>
                 <div className="brand__text">
                   <h2 className="brand__name">VARUNA</h2>

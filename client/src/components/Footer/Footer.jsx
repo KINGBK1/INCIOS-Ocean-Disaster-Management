@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-section">
-          <h3>VARUNA </h3>
+          <h3 className="varuna-brand">VARUNA </h3>
           <p>
             Advanced ocean disaster management and monitoring system for coastal safety and maritime security.
           </p>
@@ -50,7 +50,7 @@ const Footer = () => {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; 2025 VARUNA . All rights reserved.</p>
+        <p>&copy; 2025 <span className="varuna-brand">VARUNA</span> . All rights reserved.</p>
         <p>Developed for the safety and security of coastal communities across India.</p>
       </div>
     </footer>
