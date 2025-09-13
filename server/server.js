@@ -69,7 +69,7 @@ app.use((err, req, res, next) => {
 // DB Connection (temporarily disabled for testing)
 // console.log("⚠️  MongoDB connection temporarily disabled for testing");
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => {
     console.error("MongoDB connection failed:", err);
