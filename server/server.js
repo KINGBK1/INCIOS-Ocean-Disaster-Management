@@ -67,14 +67,14 @@ app.use((err, req, res, next) => {
 });
 
 // DB Connection (temporarily disabled for testing)
-console.log("⚠️  MongoDB connection temporarily disabled for testing");
-// mongoose
-//   .connect(process.env.MONGODB_URI)
-//   .then(() => console.log("MongoDB Connected"))
-//   .catch((err) => {
-//     console.error("MongoDB connection failed:", err);
-//     process.exit(1);
-//   });
+// console.log("⚠️  MongoDB connection temporarily disabled for testing");
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err);
+    process.exit(1);
+  });
 
 // Root API check
 app.get("/", (req, res) => {
