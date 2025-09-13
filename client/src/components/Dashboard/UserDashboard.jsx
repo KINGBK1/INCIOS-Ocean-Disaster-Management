@@ -15,7 +15,9 @@ import {
   Waves,
   Megaphone,
   ChevronDown,
-  ArrowDown
+  ArrowDown,
+  AlertCircle,
+  Bell
 } from "lucide-react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
@@ -86,62 +88,177 @@ const UserDashboard = () => {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [coastlineAlerts, setCoastlineAlerts] = useState([]);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [socket, setSocket] = useState(null);
+  
+  // New state variables for proximity alert feature
+  const [proximityAlert, setProximityAlert] = useState(null);
+  const [hasShownAlert, setHasShownAlert] = useState(false);
 
   const mapRef = useRef(null);
   const navigate = useNavigate();
 
-  // ------------------ Helpers for severity zones ------------------
-  const parseLatLngFromLocation = (locationStr) => {
-    if (!locationStr || typeof locationStr !== "string") return null;
-    const numRegex = /-?\d+(?:\.\d+)?/g;
-    const matches = locationStr.match(numRegex);
-    if (!matches || matches.length < 2) return null;
-    const lng = parseFloat(matches[matches.length - 1]);
-    const lat = parseFloat(matches[matches.length - 2]);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  // Helper function to calculate distance between two coordinates
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in meters
+  };
+
+  // Function to check if user is in danger zone
+  const checkUserInDangerZone = (userLoc, zones) => {
+    if (!userLoc || !zones.length) return null;
+    
+    for (const zone of zones) {
+      // Only check danger and warning zones, plus high-severity coastline alerts
+      if (zone.type === 'danger' || zone.type === 'warning' || 
+          (zone.type === 'coastline' && (zone.color === 'Red' || zone.color === 'Orange'))) {
+        
+        const distance = calculateDistance(
+          userLoc.lat, userLoc.lng,
+          zone.lat, zone.lng
+        );
+        
+        // Check if user is within the zone radius
+        if (distance <= zone.radius) {
+          return {
+            zone: zone,
+            distance: Math.round(distance),
+            severity: zone.type === 'danger' ? 'CRITICAL' : 
+                     zone.type === 'warning' ? 'WARNING' :
+                     zone.color === 'Red' ? 'RED ALERT' : 'ORANGE ALERT'
+          };
+        }
+      }
+    }
     return null;
   };
 
-  const buildSeverityZones = (
-    postsArray,
-    precision = 2,
-    dangerThreshold = 2
-  ) => {
+  // Function to dismiss the alert
+  const dismissAlert = () => {
+    setProximityAlert(null);
+  };
+
+  // ------------------ Helpers for severity zones ------------------
+  const parseLatLngFromLocation = (locationStr) => {
+    if (!locationStr || typeof locationStr !== "string") return null;
+    
+    // Try different parsing approaches
+    // Approach 1: Direct lat,lng format
+    const directMatch = locationStr.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (directMatch) {
+      const lat = parseFloat(directMatch[1]);
+      const lng = parseFloat(directMatch[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return { lat, lng };
+      }
+    }
+    
+    // Approach 2: Extract all numbers
+    const numRegex = /-?\d+(?:\.\d+)?/g;
+    const matches = locationStr.match(numRegex);
+    if (!matches || matches.length < 2) return null;
+    
+    const lat = parseFloat(matches[0]);
+    const lng = parseFloat(matches[1]);
+    
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+    
+    return null;
+  };
+
+  const buildSeverityZones = (postsArray, precision = 2, dangerThreshold = 2) => {
+    if (!Array.isArray(postsArray) || postsArray.length === 0) {
+      console.log('No posts to build severity zones from');
+      return [];
+    }
+
+    console.log('Building severity zones from posts:', postsArray.length);
     const buckets = {};
-    postsArray.forEach((p) => {
-      const coords = parseLatLngFromLocation(p.location);
-      if (!coords) return;
+    
+    postsArray.forEach((post, index) => {
+      console.log(`Processing post ${index}:`, {
+        location: post.location,
+        coordinates: post.coordinates,
+        severityPrediction: post.severityPrediction
+      });
+      
+      let coords = null;
+      
+      // Try to get coordinates from post.coordinates first
+      if (post.coordinates) {
+        if (typeof post.coordinates === 'string') {
+          try {
+            coords = JSON.parse(post.coordinates);
+          } catch (e) {
+            console.log('Failed to parse coordinates string:', post.coordinates);
+          }
+        } else if (typeof post.coordinates === 'object' && post.coordinates.lat && post.coordinates.lng) {
+          coords = post.coordinates;
+        }
+      }
+      
+      // Fallback to parsing location string
+      if (!coords && post.location) {
+        coords = parseLatLngFromLocation(post.location);
+      }
+      
+      if (!coords) {
+        console.log(`No valid coordinates found for post ${index}`);
+        return;
+      }
+      
+      console.log(`Valid coordinates for post ${index}:`, coords);
+      
       const keyLat = Number(coords.lat.toFixed(precision));
       const keyLng = Number(coords.lng.toFixed(precision));
       const key = `${keyLat},${keyLng}`;
+      
       if (!buckets[key]) {
         buckets[key] = { lat: keyLat, lng: keyLng, count: 0, severeCount: 0 };
       }
+      
       buckets[key].count += 1;
-      if (p.severityPrediction) buckets[key].severeCount += 1;
+      if (post.severityPrediction || post.severity === 'high' || post.severity === 'severe') {
+        buckets[key].severeCount += 1;
+      }
     });
 
-    return Object.values(buckets).map((b) => {
-      const radiusBase = 500; // meters
-      const maxRadius = 500000;
+    const zones = Object.values(buckets).map((bucket) => {
+      const radiusBase = 1000; // meters - increased base radius
+      const maxRadius = 50000; // 50km max radius
       const radius = Math.min(
-        Math.round(radiusBase * Math.sqrt(b.count)),
+        Math.round(radiusBase * Math.sqrt(bucket.count)),
         maxRadius
       );
+      
       let type = "safe";
-      if (b.severeCount >= dangerThreshold) type = "danger";
-      else if (b.severeCount > 0) type = "warning";
-      else type = "safe";
+      if (bucket.severeCount >= dangerThreshold) {
+        type = "danger";
+      } else if (bucket.severeCount > 0) {
+        type = "warning";
+      }
+      
       return {
-        lat: b.lat,
-        lng: b.lng,
+        lat: bucket.lat,
+        lng: bucket.lng,
         radius,
         type,
-        label: `Reports: ${b.count}${
-          b.severeCount ? ` • Severe: ${b.severeCount}` : ""
+        label: `Reports: ${bucket.count}${
+          bucket.severeCount ? ` • Severe: ${bucket.severeCount}` : ""
         }`,
       };
     });
+
+    console.log('Generated severity zones:', zones);
+    return zones;
   };
 
   // NEW: Fetch coastline alerts from MongoDB
@@ -214,10 +331,63 @@ const UserDashboard = () => {
         return { ...baseStyle, color: '#0000FF', fillColor: '#0000FF' };
     }
   };
+
+  // Initialize Socket.IO with better error handling
+  const initializeSocket = () => {
+    try {
+      const backendURL = import.meta.env.MODE === "production"
+        ? import.meta.env.VITE_BACKEND_PROD_URL || import.meta.env.VITE_BACKEND_URL
+        : import.meta.env.VITE_BACKEND_URL;
+
+      console.log('Initializing socket connection to:', backendURL);
+
+      const socketInstance = io(backendURL, {
+        transports: ["polling", "websocket"], // Try polling first, then websocket
+        withCredentials: true,
+        timeout: 10000,
+        forceNew: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        maxReconnectionAttempts: 5
+      });
+
+      socketInstance.on("connect", () => {
+        console.log("Socket connected successfully");
+      });
+
+      socketInstance.on("connect_error", (error) => {
+        console.warn("Socket connection error:", error.message);
+        // Don't show error to user, just log it
+      });
+
+      socketInstance.on("disconnect", (reason) => {
+        console.log("Socket disconnected:", reason);
+      });
+
+      socketInstance.on("newPost", (newPost) => {
+        console.log("Received new post:", newPost);
+        setPosts((prev) => [newPost, ...prev]);
+      });
+
+      socketInstance.on("zoneUpdate", (updatedZones) => {
+        console.log("Received zone update:", updatedZones);
+        setZones(updatedZones);
+      });
+
+      setSocket(socketInstance);
+      
+      return socketInstance;
+    } catch (error) {
+      console.error("Failed to initialize socket:", error);
+      return null;
+    }
+  };
+
   // ---------------------------------------------------------------
 
   useEffect(() => {
-  const fetchUser = async () => {
+    const fetchUser = async () => {
       try {
         const token = Cookies.get("token");
         if (!token) {
@@ -250,9 +420,9 @@ const UserDashboard = () => {
         }
         
         const data = await res.json();
-        console.log('Raw user data response:', data); // Debug log
+        console.log('Raw user data response:', data);
         
-        // Handle different response structures - flexible for existing backend
+        // Handle different response structures
         let userData;
         if (data.success && data.user) {
           userData = data.user;
@@ -261,12 +431,10 @@ const UserDashboard = () => {
         } else if (data.message === "Authenticated" && data.user) {
           userData = data.user;
         } else {
-          console.log('Backend response structure:', data);
-          // Try to use the data directly if it has user fields
           userData = data;
         }
         
-        // Normalize user data structure - handle both old and new field names
+        // Normalize user data structure
         const normalizedUser = {
           name: userData.name || userData.username || 'Unknown User',
           email: userData.email || 'No email provided', 
@@ -304,8 +472,11 @@ const UserDashboard = () => {
             credentials: 'include',
           }
         );
-        const data = await res.json();
-        setZones(data);
+        if (res.ok) {
+          const data = await res.json();
+          console.log('Fetched zones from API:', data);
+          setZones(data);
+        }
       } catch (err) {
         console.error("Error fetching zones:", err);
       }
@@ -318,39 +489,57 @@ const UserDashboard = () => {
           method: 'GET',
           credentials: 'include' 
         });
-        const data = await res.json();
-        const postsFromApi = Array.isArray(data) ? data : [];
-        setPosts(postsFromApi);
-        const computedZones = buildSeverityZones(postsFromApi, 2, 2);
-        setZones((prev) => {
-          const kept = prev ? prev.filter((z) => z.type === "coastline") : [];
-          return [...kept, ...computedZones];
-        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          console.log('Fetched posts from API:', data);
+          const postsFromApi = Array.isArray(data) ? data : [];
+          setPosts(postsFromApi);
+          
+          // Generate severity zones from posts
+          const computedZones = buildSeverityZones(postsFromApi, 2, 1); // Lower threshold for testing
+          console.log('Computed severity zones:', computedZones);
+          
+          setZones((prevZones) => {
+            // Keep coastline alerts and add severity zones
+            const coastlineZones = prevZones.filter((z) => z.type === "coastline");
+            const newZones = [...coastlineZones, ...computedZones];
+            console.log('Updated zones array:', newZones);
+            return newZones;
+          });
+        }
       } catch (err) {
         console.error("Error fetching posts:", err);
       }
     };
 
+    // Initialize everything
     fetchUser();
     fetchZones();
     fetchPosts();
-    fetchCoastlineAlerts(); // NEW: Fetch coastline alerts
-
-    const backendURL =
-      import.meta.env.MODE === "production"
-        ? import.meta.env.VITE_BACKEND_PROD_URL
-        : import.meta.env.VITE_BACKEND_URL;
-
-    const socket = io(backendURL, {
-      transports: ["websocket", "polling"],
-      withCredentials: true,
-    });
-    socket.on("newPost", (newPost) => setPosts((prev) => [newPost, ...prev]));
-    socket.on("zoneUpdate", (updatedZones) => setZones(updatedZones));
+    fetchCoastlineAlerts();
     getUserLocation();
+    
+    // Initialize socket connection
+    const socketInstance = initializeSocket();
 
-    return () => socket.disconnect();
+    return () => {
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
+    };
   }, [navigate]);
+
+  // Update zones when posts change
+  useEffect(() => {
+    if (posts.length > 0) {
+      const computedZones = buildSeverityZones(posts, 2, 1);
+      setZones((prevZones) => {
+        const coastlineZones = prevZones.filter((z) => z.type === "coastline");
+        return [...coastlineZones, ...computedZones];
+      });
+    }
+  }, [posts]);
 
   useEffect(() => {
     if (mapRef.current && userLocation) {
@@ -358,6 +547,32 @@ const UserDashboard = () => {
       map.flyTo([userLocation.lat, userLocation.lng], 14);
     }
   }, [userLocation]);
+
+  // NEW: Proximity alert check useEffect - Fixed zone reference
+  useEffect(() => {
+    // Use the combined zones for proximity checking
+    const combinedZones = [...zones, ...coastlineAlerts];
+    
+    // Check proximity when user location or zones change
+    if (userLocation && combinedZones.length > 0 && !hasShownAlert) {
+      console.log('Checking proximity with zones:', combinedZones.length);
+      const alert = checkUserInDangerZone(userLocation, combinedZones);
+      
+      if (alert) {
+        console.log('User in danger zone:', alert);
+        setProximityAlert(alert);
+        setHasShownAlert(true); // Prevent repeated alerts in same session
+        
+        // Play alert sound (optional)
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjiS3PDGdSgEKYPM8t1+OQcTZrju4J5NEAtwl9v7z3QoBCaFy/DaiDwIF2W37+eXQgoVc7nV+8NuIAMlgMrx2o5GCxNiubPzpVILA0yl4vK8YhoGN4bV8sp4KwUnisnz24E6Bxd+yPHZhTEIGnK87uaVSgoUcrrK8r5pHgU7hM3u14s9CBdl');
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+          console.log('Audio creation failed:', e);
+        }
+      }
+    }
+  }, [userLocation, zones, coastlineAlerts, hasShownAlert]);
 
   // Fix map loading on resize and mobile
   useEffect(() => {
@@ -446,15 +661,15 @@ const UserDashboard = () => {
   const getZoneStyle = (type) => {
     switch (type) {
       case "danger":
-        return { color: "red", fillColor: "red", fillOpacity: 0.3 };
+        return { color: "red", fillColor: "red", fillOpacity: 0.4, weight: 3 };
       case "warning":
-        return { color: "yellow", fillColor: "yellow", fillOpacity: 0.3 };
+        return { color: "orange", fillColor: "orange", fillOpacity: 0.4, weight: 2 };
       case "safe":
-        return { color: "green", fillColor: "green", fillOpacity: 0.3 };
+        return { color: "green", fillColor: "green", fillOpacity: 0.3, weight: 2 };
       case "coastline":
-        return { color: "blue", fillColor: "blue", fillOpacity: 0.3 };
+        return { color: "blue", fillColor: "blue", fillOpacity: 0.3, weight: 2 };
       default:
-        return { color: "gray", fillColor: "gray", fillOpacity: 0.2 };
+        return { color: "gray", fillColor: "gray", fillOpacity: 0.2, weight: 1 };
     }
   };
 
@@ -498,6 +713,9 @@ const UserDashboard = () => {
       );
       
       if (response.ok) {
+        const newPost = await response.json();
+        // Update posts immediately for instant feedback
+        setPosts(prev => [newPost, ...prev]);
         setPostContent("");
         setSelectedFiles([]);
         setLocation("");
@@ -509,8 +727,11 @@ const UserDashboard = () => {
     }
   };
 
-  // Combine all zones for display
-  const allZones = [...zones, ...coastlineAlerts];
+  // Combine all zones for display - separate severity zones from coastline alerts
+  const severityZones = zones.filter(zone => zone.type !== 'coastline');
+  const allZones = [...severityZones, ...coastlineAlerts];
+
+  console.log('Rendering zones:', { severityZones: severityZones.length, coastlineAlerts: coastlineAlerts.length, total: allZones.length });
 
   return (
     <div className="dashboard-container">
@@ -535,10 +756,13 @@ const UserDashboard = () => {
                   <BarChart3 className="stat-icon-user" style={{color: '#10b981'}} /> Coastline Alerts: <strong>{coastlineAlerts.length}</strong>
                 </span>
                 <span className="stat-item">
-                  <ShieldAlert className="stat-icon-user" style={{color: '#ef4444'}} /> Danger Zones: <strong>{zones.filter(z => z.type === 'danger').length}</strong>
+                  <ShieldAlert className="stat-icon-user" style={{color: '#ef4444'}} /> Danger Zones: <strong>{severityZones.filter(z => z.type === 'danger').length}</strong>
                 </span>
                 <span className="stat-item">
-                  <AlertTriangle className="stat-icon-user" style={{color: '#f59e0b'}} /> Warning Zones: <strong>{zones.filter(z => z.type === 'warning').length}</strong>
+                  <AlertTriangle className="stat-icon-user" style={{color: '#f59e0b'}} /> Warning Zones: <strong>{severityZones.filter(z => z.type === 'warning').length}</strong>
+                </span>
+                <span className="stat-item">
+                  <CheckCircle className="stat-icon-user" style={{color: '#10b981'}} /> Reports: <strong>{posts.length}</strong>
                 </span>
               </div>
             </div>
@@ -556,9 +780,9 @@ const UserDashboard = () => {
                   />
                   
                   {/* Render severity zones */}
-                  {zones.map((zone, index) => (
+                  {severityZones.map((zone, index) => (
                     <Circle
-                      key={`severity-zone-${index}`}
+                      key={`severity-zone-${index}-${zone.lat}-${zone.lng}`}
                       center={[zone.lat, zone.lng]}
                       radius={zone.radius}
                       pathOptions={getZoneStyle(zone.type)}
@@ -568,16 +792,19 @@ const UserDashboard = () => {
                           {zone.type === "danger" && <><ShieldAlert size={16} style={{color: '#ef4444', display: 'inline', marginRight: '4px'}} /> Danger Zone</>}
                           {zone.type === "warning" && <><AlertTriangle size={16} style={{color: '#f59e0b', display: 'inline', marginRight: '4px'}} /> Warning Zone</>}
                           {zone.type === "safe" && <><CheckCircle size={16} style={{color: '#10b981', display: 'inline', marginRight: '4px'}} /> Safe Zone</>}
-                          {zone.label && <div>{zone.label}</div>}
+                          {zone.label && <div style={{marginTop: '4px'}}>{zone.label}</div>}
+                          <div style={{fontSize: '12px', color: '#666', marginTop: '4px'}}>
+                            Radius: {Math.round(zone.radius)}m
+                          </div>
                         </div>
                       </Popup>
                     </Circle>
                   ))}
                   
-                  {/* NEW: Render coastline alerts */}
+                  {/* Render coastline alerts */}
                   {coastlineAlerts.map((alert, index) => (
                     <Circle
-                      key={`coastline-alert-${index}`}
+                      key={`coastline-alert-${index}-${alert.lat}-${alert.lng}`}
                       center={[alert.lat, alert.lng]}
                       radius={alert.radius}
                       pathOptions={getCoastlineStyle(alert)}
@@ -648,7 +875,7 @@ const UserDashboard = () => {
                 </MapContainer>
               </div>
               
-              {/* NEW: Enhanced Legend */}
+              {/* Enhanced Legend */}
               <div className="map-legend">
                 <div className="legend-title">Map Legend:</div>
                 <div className="legend-items">
@@ -657,7 +884,7 @@ const UserDashboard = () => {
                     <span>Danger Zone</span>
                   </div>
                   <div className="legend-item">
-                    <div className="legend-color" style={{ backgroundColor: '#ffff00' }}></div>
+                    <div className="legend-color" style={{ backgroundColor: '#ffa500' }}></div>
                     <span>Warning Zone</span>
                   </div>
                   <div className="legend-item">
@@ -736,6 +963,95 @@ const UserDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Debug Info - Remove in production */}
+            {/* {import.meta.env.MODE === 'development' && (
+              <div style={{ 
+                marginTop: '20px', 
+                padding: '15px', 
+                backgroundColor: '#f8f9fa', 
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                <h4>Debug Info:</h4>
+                <p>Posts loaded: {posts.length}</p>
+                <p>Severity zones: {severityZones.length}</p>
+                <p>Coastline alerts: {coastlineAlerts.length}</p>
+                <p>Socket connected: {socket?.connected ? 'Yes' : 'No'}</p>
+                {posts.slice(0, 3).map((post, i) => (
+                  <div key={i} style={{marginTop: '10px', padding: '8px', backgroundColor: '#fff', borderRadius: '4px'}}>
+                    <p><strong>Post {i+1}:</strong></p>
+                    <p>Location: {post.location || 'N/A'}</p>
+                    <p>Coordinates: {JSON.stringify(post.coordinates) || 'N/A'}</p>
+                    <p>Severity: {post.severityPrediction ? 'High' : 'Normal'}</p>
+                  </div>
+                ))}
+              </div>
+            )} */}
+
+            {/* Posts Feed - Add this section */}
+            {/* <div className="posts-feed" style={{ marginTop: '30px' }}>
+              <div className="section-header">
+                <h3 className="section-title">Recent Reports</h3>
+              </div>
+              {posts.length > 0 ? (
+                <div className="posts-list">
+                  {posts.slice(0, 5).map((post, index) => (
+                    <div key={post._id || index} className="post-item" style={{
+                      padding: '15px',
+                      marginBottom: '15px',
+                      backgroundColor: '#fff',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      border: post.severityPrediction ? '2px solid #ef4444' : '1px solid #e5e7eb'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0', fontSize: '14px', fontWeight: '600' }}>
+                            {post.user?.name || 'Anonymous User'}
+                          </h4>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                            {post.location || 'Location not available'}
+                          </p>
+                        </div>
+                        {post.severityPrediction && (
+                          <div style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#fef2f2',
+                            color: '#dc2626',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            High Severity
+                          </div>
+                        )}
+                      </div>
+                      <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.4' }}>
+                        {post.content || 'No content'}
+                      </p>
+                      {post.createdAt && (
+                        <p style={{ margin: '10px 0 0 0', fontSize: '11px', color: '#999' }}>
+                          {new Date(post.createdAt).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '40px', 
+                  color: '#666',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <p>No reports available yet.</p>
+                  <p style={{ fontSize: '14px' }}>Be the first to report a disaster situation!</p>
+                </div>
+              )}
+            </div> */}
           </div>
         </div>
       </div>
@@ -750,8 +1066,191 @@ const UserDashboard = () => {
           <ArrowDown />
         </button>
       )}
+
+      {/* Proximity Alert Modal */}
+      {proximityAlert && (
+        <div className="proximity-alert-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="proximity-alert-modal" style={{
+            backgroundColor: proximityAlert.severity === 'CRITICAL' ? '#fef2f2' : 
+                            proximityAlert.severity === 'RED ALERT' ? '#fef2f2' : '#fefbf2',
+            border: `3px solid ${proximityAlert.severity === 'CRITICAL' ? '#dc2626' : 
+                                proximityAlert.severity === 'RED ALERT' ? '#dc2626' : '#f59e0b'}`,
+            borderRadius: '16px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            textAlign: 'center',
+            position: 'relative',
+            animation: 'alertPulse 2s infinite'
+          }}>
+            <button 
+              onClick={dismissAlert}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666'
+              }}
+            >
+              <X size={24} />
+            </button>
+            
+            <div style={{ 
+              fontSize: '48px',
+              marginBottom: '20px',
+              color: proximityAlert.severity === 'CRITICAL' ? '#dc2626' : 
+                     proximityAlert.severity === 'RED ALERT' ? '#dc2626' : '#f59e0b'
+            }}>
+              {proximityAlert.severity === 'CRITICAL' ? '🚨' :
+               proximityAlert.severity === 'RED ALERT' ? '🔴' : '⚠️'}
+            </div>
+            
+            <h2 style={{
+              color: proximityAlert.severity === 'CRITICAL' ? '#dc2626' : 
+                     proximityAlert.severity === 'RED ALERT' ? '#dc2626' : '#f59e0b',
+              marginBottom: '15px',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}>
+              <AlertCircle size={28} />
+              {proximityAlert.severity} ALERT
+            </h2>
+            
+            <p style={{
+              fontSize: '18px',
+              marginBottom: '20px',
+              color: '#374151',
+              lineHeight: '1.5'
+            }}>
+              <strong>You are currently in a disaster zone!</strong>
+              <br />
+              Severe alerts have been reported in your nearby area.
+            </p>
+            
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              padding: '20px',
+              borderRadius: '12px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ marginBottom: '10px' }}>
+                <strong>Zone Type:</strong> {
+                  proximityAlert.zone.type === 'danger' ? 'High Severity Danger Zone' :
+                  proximityAlert.zone.type === 'warning' ? 'Warning Zone' :
+                  proximityAlert.zone.type === 'coastline' ? `Coastline Alert (${proximityAlert.zone.color})` :
+                  'Alert Zone'
+                }
+              </div>
+              
+              <div style={{ marginBottom: '10px' }}>
+                <strong>Distance from center:</strong> {proximityAlert.distance}m
+              </div>
+              
+              {proximityAlert.zone.label && (
+                <div style={{ marginBottom: '10px' }}>
+                  <strong>Details:</strong> {proximityAlert.zone.label}
+                </div>
+              )}
+              
+              {proximityAlert.zone.message && (
+                <div style={{ marginBottom: '10px' }}>
+                  <strong>Message:</strong> {proximityAlert.zone.message}
+                </div>
+              )}
+            </div>
+            
+            <div style={{
+              backgroundColor: proximityAlert.severity === 'CRITICAL' ? '#fee2e2' : '#fef3c7',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '14px',
+              textAlign: 'left'
+            }}>
+              <h4 style={{ marginBottom: '10px', color: '#374151' }}>🛡️ Safety Recommendations:</h4>
+              <ul style={{ margin: '0', paddingLeft: '20px', color: '#374151' }}>
+                <li>Stay alert and monitor local emergency broadcasts</li>
+                <li>Keep emergency contacts and supplies ready</li>
+                <li>Follow evacuation orders if issued</li>
+                <li>Avoid non-essential travel in the area</li>
+                <li>Report any immediate dangers to authorities</li>
+              </ul>
+            </div>
+            
+            <button 
+              onClick={dismissAlert}
+              style={{
+                backgroundColor: proximityAlert.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b',
+                color: 'white',
+                padding: '12px 30px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                margin: '0 auto'
+              }}
+            >
+              <Bell size={20} />
+              I Understand - Stay Alert
+            </button>
+          </div>
+        </div>
+      )}
       
       <Footer />
+
+      {/* CSS Styles for Alert Animation */}
+      <style jsx>{`
+        @keyframes alertPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
+        
+        .proximity-alert-overlay {
+          backdrop-filter: blur(4px);
+        }
+        
+        @media (max-width: 768px) {
+          .proximity-alert-modal {
+            padding: 20px !important;
+            margin: 10px;
+          }
+          
+          .proximity-alert-modal h2 {
+            font-size: 20px !important;
+          }
+          
+          .proximity-alert-modal p {
+            font-size: 16px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

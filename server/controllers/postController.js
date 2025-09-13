@@ -1,8 +1,8 @@
 import Post from "../models/PostModel.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
-import fs from "fs"; // Change back to standard fs for createReadStream
-import FormData from "form-data"; 
+import fs from "fs";
+import FormData from "form-data";
 
 // Create a new post
 export const createPost = async (req, res) => {
@@ -11,7 +11,7 @@ export const createPost = async (req, res) => {
     if (!content) return res.status(400).json({ error: "Content is required" });
 
     let uploadedFiles = [];
-    let severity = "non_disaster"; // default severity
+    let severityPrediction = "non_disaster"; // Default string value to match your existing data
     let firstImageFile = null;
 
     if (req.files?.length > 0) {
@@ -42,12 +42,27 @@ export const createPost = async (req, res) => {
 
         const response = await axios.post("https://disaster-classifier-kjj7.onrender.com/predict", formData, {
           headers: formData.getHeaders(),
+          timeout: 10000 // 10 second timeout
         });
 
-        severity = response.data.severity;
+        severityPrediction = response.data.severity || "non_disaster";
+        console.log('ML API Response:', { severityPrediction });
       } catch (mlErr) {
         console.error("ML API error:", mlErr.message);
+        // If ML fails, check content for disaster keywords
+        const disasterKeywords = ['flood', 'fire', 'earthquake', 'storm', 'hurricane', 'tsunami', 'cyclone', 'emergency', 'help', 'rescue', 'disaster', 'urgent', 'danger', 'crisis'];
+        const hasDisasterKeyword = disasterKeywords.some(keyword => 
+          content.toLowerCase().includes(keyword.toLowerCase())
+        );
+        severityPrediction = hasDisasterKeyword ? "disaster" : "non_disaster";
       }
+    } else {
+      // No image - analyze text content for disaster keywords
+      const disasterKeywords = ['flood', 'fire', 'earthquake', 'storm', 'hurricane', 'tsunami', 'cyclone', 'emergency', 'help', 'rescue', 'disaster', 'urgent', 'danger', 'crisis'];
+      const hasDisasterKeyword = disasterKeywords.some(keyword => 
+        content.toLowerCase().includes(keyword.toLowerCase())
+      );
+      severityPrediction = hasDisasterKeyword ? "disaster" : "non_disaster";
     }
 
     // Clean up multer temp files
@@ -58,13 +73,24 @@ export const createPost = async (req, res) => {
     const newPost = new Post({
       content,
       files: uploadedFiles,
-      location,
-      severityPrediction: severity,
+      location, // Keep as string format: "lat, lng"
+      severityPrediction, // Keep as string to match your existing data
       user: req.user ? req.user.id : null,
     });
 
     await newPost.save();
-    res.status(201).json(newPost);
+
+    // Populate user data for response
+    const populatedPost = await Post.findById(newPost._id).populate("user", "name email");
+
+    // Get Socket.IO instance and emit new post
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("newPost", populatedPost);
+      console.log('Emitted newPost event for:', populatedPost._id);
+    }
+
+    res.status(201).json(populatedPost);
   } catch (err) {
     console.error("Error creating post:", err.message);
     res.status(500).json({ error: "Server error while creating post" });
@@ -73,7 +99,21 @@ export const createPost = async (req, res) => {
 
 export const getPosts = async (req, res) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const posts = await Post.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+    
+    console.log(`Returning ${posts.length} posts`);
+    // Log first few posts for debugging
+    if (posts.length > 0) {
+      console.log('Sample posts:', posts.slice(0, 3).map(p => ({
+        id: p._id,
+        location: p.location,
+        severityPrediction: p.severityPrediction,
+        content: p.content?.substring(0, 50) + '...'
+      })));
+    }
+    
     res.json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -95,6 +135,13 @@ export const deletePost = async (req, res) => {
   try {
     const post = await Post.findByIdAndDelete(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found" });
+    
+    // Emit post deletion event
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("postDeleted", req.params.id);
+    }
+    
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
