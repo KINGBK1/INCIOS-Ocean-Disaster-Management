@@ -3,16 +3,36 @@ import https from "https";
 import { MongoClient } from "mongodb";
 import cron from "node-cron";
 
-const client = new MongoClient(process.env.MONGODB_URI);
-const db = client.db("VARUNA_DMS");
-const alertsCollection = db.collection("coastline_alerts");
+// Initialize MongoDB client only when needed
+let client = null;
+let db = null;
+let alertsCollection = null;
+
+const initMongoDB = () => {
+  if (!client && process.env.MONGODB_URI) {
+    try {
+      client = new MongoClient(process.env.MONGODB_URI);
+      db = client.db("VARUNA_DMS");
+      alertsCollection = db.collection("coastline_alerts");
+    } catch (error) {
+      console.warn("MongoDB initialization failed:", error.message);
+    }
+  }
+  return { client, db, alertsCollection };
+};
 
 const FASTAPI_URL = "https://web-scraping-server-rdgi.onrender.com/alerts";
 
 // Schedule ping to FastAPI every 6 hours (0 */6 * * *)
 cron.schedule("0 */6 * * *", async () => {
   try {
-    await client.connect();
+    const { client: mongoClient, alertsCollection: collection } = initMongoDB();
+    if (!mongoClient || !collection) {
+      console.log("MongoDB not available, skipping cron job");
+      return;
+    }
+    
+    await mongoClient.connect();
     const response = await axios.get(FASTAPI_URL);
     const alerts = response.data.alerts;
 
@@ -26,14 +46,16 @@ cron.schedule("0 */6 * * *", async () => {
     }
 
     if (alerts.length > 0) {
-      await alertsCollection.deleteMany({});
-      await alertsCollection.insertMany(alerts);
+      await collection.deleteMany({});
+      await collection.insertMany(alerts);
       console.log(`Updated ${alerts.length} coastline alerts at ${new Date()}`);
     }
   } catch (error) {
     console.error("Error updating coastline alerts:", error.message);
   } finally {
-    await client.close();
+    if (client) {
+      await client.close();
+    }
   }
 });
 
@@ -372,10 +394,11 @@ const filterIndiaRelevantAlerts = (alerts) => {
 };
 
 export const getPast90DaysAlerts = async (req, res) => {
-  console.log("\n🇮🇳 BHAI INDIA ONLY ALERTS - PAKKA GUARANTEE!");
-  
-  // HARDCODED INDIA ALERTS - NO CHANCE OF FOREIGN DATA
-  const INDIA_ONLY_ALERTS = [
+  try {
+    console.log("\n🇮🇳 BHAI INDIA ONLY ALERTS - PAKKA GUARANTEE!");
+    
+    // HARDCODED INDIA ALERTS - NO CHANCE OF FOREIGN DATA
+    const INDIA_ONLY_ALERTS = [
     {
       id: "INDIA-001",
       EVID: "INDIA2024001", 
@@ -444,13 +467,17 @@ export const getPast90DaysAlerts = async (req, res) => {
     }
   ];
   
-  console.log("💯 BHAI 100% INDIA ALERTS:");
-  INDIA_ONLY_ALERTS.forEach((alert, i) => {
-    console.log(`  ${i + 1}. ${alert.REGIONNAME} - Magnitude ${alert.MAGNITUDE}`);
-  });
-  
-  res.json(INDIA_ONLY_ALERTS);
-  return;
+    console.log("💯 BHAI 100% INDIA ALERTS:");
+    INDIA_ONLY_ALERTS.forEach((alert, i) => {
+      console.log(`  ${i + 1}. ${alert.REGIONNAME} - Magnitude ${alert.MAGNITUDE}`);
+    });
+    
+    res.json(INDIA_ONLY_ALERTS);
+    return;
+  } catch (error) {
+    console.error('Error in getPast90DaysAlerts:', error);
+    res.status(500).json({ error: 'Failed to fetch past 90 days alerts', details: error.message });
+  }
   
   /* COMMENTED OUT FOR TESTING
   try {
@@ -658,7 +685,19 @@ export const getPast90DaysAlerts = async (req, res) => {
 
 export const getCoastlineAlerts = async (req, res) => {
   try {
-    await client.connect();
+    const { client: mongoClient, alertsCollection: collection } = initMongoDB();
+    if (!mongoClient || !collection) {
+      // Return empty result if MongoDB not available
+      res.status(200).json({
+        success: true,
+        count: 0,
+        coastlineAlerts: [],
+        message: "MongoDB not available - no coastline alerts"
+      });
+      return;
+    }
+    
+    await mongoClient.connect();
     const { limit = 100, alertType, state, district } = req.query;
 
     let filter = {};
@@ -668,7 +707,7 @@ export const getCoastlineAlerts = async (req, res) => {
     filter.lat = { $exists: true, $ne: null };
     filter.lng = { $exists: true, $ne: null };
 
-    const alerts = await alertsCollection
+    const alerts = await collection
       .find(filter)
       .sort({ fetched_at: -1 })
       .limit(parseInt(limit))
@@ -710,7 +749,10 @@ export const getCoastlineAlerts = async (req, res) => {
       error: "Failed to fetch coastline alerts from database",
     });
   } finally {
-    await client.close();
+    const { client: mongoClient } = initMongoDB();
+    if (mongoClient) {
+      await mongoClient.close();
+    }
   }
 };
 

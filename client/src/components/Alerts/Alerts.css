@@ -646,6 +646,30 @@
   height: 1rem;
 }
 
+/* Load more trigger for lazy loading */
+.load-more-trigger {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.load-more-trigger button {
+  transition: all 0.2s ease;
+}
+
+.load-more-trigger button:hover:not(:disabled) {
+  background: var(--primary-dark) !important;
+  transform: translateY(-1px);
+}
+
+.load-more-trigger button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
