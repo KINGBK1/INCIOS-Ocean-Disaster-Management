@@ -1224,7 +1224,7 @@ const UserDashboard = () => {
       
       <Footer />
 
-      {/* CSS Styles for Alert Animation */}
+ {/* CSS Styles for Alert Animation */}
       <style jsx>{`
         @keyframes alertPulse {
           0% { transform: scale(1); }
@@ -1236,18 +1236,88 @@ const UserDashboard = () => {
           backdrop-filter: blur(4px);
         }
         
-        @media (max-width: 768px) {
+        /* Mobile responsive styles for proximity alert */
+        @media (max-width: 480px) {
+          .proximity-alert-modal {
+            padding: 15px !important;
+            margin: 10px !important;
+            width: calc(100vw - 20px) !important;
+            max-width: none !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
+          
+          .proximity-alert-modal h2 {
+            font-size: 18px !important;
+            margin-bottom: 10px !important;
+          }
+          
+          .proximity-alert-modal p {
+            font-size: 14px !important;
+            margin-bottom: 15px !important;
+          }
+          
+          .proximity-alert-modal div[style*="fontSize: '48px'"] {
+            font-size: 36px !important;
+            margin-bottom: 15px !important;
+          }
+          
+          .proximity-alert-modal div[style*="backgroundColor: 'rgba(255, 255, 255, 0.7)"] {
+            padding: 15px !important;
+            margin-bottom: 15px !important;
+            font-size: 13px !important;
+          }
+          
+          .proximity-alert-modal ul {
+            font-size: 12px !important;
+            padding-left: 15px !important;
+          }
+          
+          .proximity-alert-modal button {
+            padding: 10px 20px !important;
+            font-size: 14px !important;
+            width: 100% !important;
+            justify-content: center !important;
+          }
+        }
+        
+        @media (min-width: 481px) and (max-width: 768px) {
           .proximity-alert-modal {
             padding: 20px !important;
-            margin: 10px;
+            margin: 15px !important;
+            width: calc(100vw - 30px) !important;
+            max-width: 450px !important;
+            max-height: 85vh !important;
+            overflow-y: auto !important;
           }
           
           .proximity-alert-modal h2 {
             font-size: 20px !important;
+            margin-bottom: 12px !important;
           }
           
           .proximity-alert-modal p {
             font-size: 16px !important;
+          }
+          
+          .proximity-alert-modal div[style*="fontSize: '48px'"] {
+            font-size: 40px !important;
+          }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .proximity-alert-modal {
+            max-width: 480px !important;
+            margin: 20px !important;
+          }
+        }
+        
+        /* Ensure modal content doesn't overflow on very small screens */
+        @media (max-height: 600px) {
+          .proximity-alert-modal {
+            max-height: 95vh !important;
+            overflow-y: auto !important;
+            padding: 15px !important;
           }
         }
       `}</style>
