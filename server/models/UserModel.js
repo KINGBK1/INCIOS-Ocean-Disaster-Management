@@ -61,15 +61,20 @@ const userSchema = new mongoose.Schema({
   lastLogin: { type: Date }
 }, { timestamps: true });
 
-// password hashing
+// password hashing - FIXED
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  // Skip if password doesn't exist or wasn't modified
+  if (!this.isModified("password") || !this.password) return next();
+  
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
 // password check
 userSchema.methods.comparePassword = async function (enteredPassword) {
+  // Return false if no password exists (for NGO/admin/ddmo accounts)
+  if (!this.password) return false;
+  
   return bcrypt.compare(enteredPassword, this.password);
 };
 
