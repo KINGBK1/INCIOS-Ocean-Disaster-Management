@@ -1,6 +1,6 @@
 import express from "express";
 import { register, login, googleLogin, approveUser } from "../controllers/authController.js";
-import { authMiddleware, authorizeRoles } from "../middlewares/authMiddleware.js";
+import { authMiddleware, roleMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -28,8 +28,8 @@ router.get("/status", authMiddleware, (req, res) => {
 });
 
 // only admin can approve NGO/DDMO/Admin signups
-router.patch("/approve/:id", authMiddleware, authorizeRoles("admin"), approveUser);
-
+// Changed "admin" to ["admin"]
+router.patch("/approve/:id", authMiddleware, roleMiddleware(["admin"]), approveUser);
 
 // miscellaneous routes
 //For Pinging the server after every 5 mins

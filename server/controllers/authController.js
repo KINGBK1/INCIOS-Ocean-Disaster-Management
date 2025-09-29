@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-// import bcrypt from "bcryptjs";
 import User from "../models/UserModel.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -9,7 +8,10 @@ const generateToken = (id, role) =>
 // regular signup
 export const register = async (req, res) => {
   try {
-    const { username, email, password, role, officialId, location } = req.body;
+    const { username, email, password, role, location, ngoDetails, phone } = req.body;
+    
+    // Extract officialId from role-specific field or direct officialId field
+    const officialId = req.body[`${role}Id`] || req.body.officialId;
 
     if (!username) {
       return res.status(400).json({ message: "Username is required" });
@@ -36,20 +38,27 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "Username already taken" });
     }
 
-    // Create user
-    const user = new User({
+    // Create user object
+    const userData = {
       username,
-      email: email || undefined, // email optional
+      email: email || undefined,
       password,
       role,
       officialId: role !== "user" ? officialId : undefined,
       location,
+      phone,
       isApproved: role === "user" ? true : false
-    });
+    };
 
+    // Add NGO-specific details if role is ngo
+    if (role === 'ngo' && ngoDetails) {
+      userData.ngoDetails = ngoDetails;
+    }
+
+    const user = new User(userData);
     await user.save();
 
-    //  Response
+    // Response
     if (user.role !== "user") {
       return res.status(201).json({
         message: "Account created. Awaiting admin approval.",
@@ -64,7 +73,6 @@ export const register = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 // google login/signup for regular user
 export const googleLogin = async (req, res) => {
@@ -116,7 +124,6 @@ export const login = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 // approve accounts (admin only)
 export const approveUser = async (req, res) => {

@@ -10,7 +10,7 @@ import { AuthProvider } from './components/Auth/context/AuthContext';
 import LiveMap from './components/Map/LiveMap';
 import Alerts from './components/Alerts/Alerts';
 import ProfileSettings from './components/Profile/ProfileSettings';
-
+import NGODashboard from './components/NGOdashboard/NGOdashboard';
 
 const App = () => {
   return (
@@ -26,6 +26,7 @@ const App = () => {
             <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/profile-settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+            <Route path="/ngo-dashboard" element={<ProtectedRoute><NGODashboard /></ProtectedRoute>} />
           </Routes>
         </Router>
       </AuthProvider>
