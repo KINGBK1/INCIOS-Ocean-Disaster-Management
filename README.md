@@ -15,21 +15,21 @@
 
 ---
 
-## 🚨 The Problem
+## The Problem
 - **Fragmented Data:** Disconnected communication between citizens, NGOs, and government officials during disasters.
 - **Manual Triage Delays:** Traditional systems rely on humans to verify and prioritize reports, wasting the critical **"golden hour"** of rescue.
 - **Lack of Real-Time Sync:** Responders lack a single source of truth for tracking emergencies as they happen.
 
-## 💡 The Solution
+## The Solution
 **VARUNA** is a unified, real-time command center that eliminates manual delays by using **Artificial Intelligence (AI)** and **Natural Language Processing (NLP)**. 
 
 When a citizen reports an emergency, the system **instantly analyzes** the text and images, predicts the **threat severity**, and automatically dispatches the data to relevant authorities without human bottlenecking.
 
-## 🛠️ What Was Done to Solve It
-- 🧠 **NLP-Powered Triage:** Built a **Machine Learning microservice** using NLP to extract context and urgency from unstructured text, instantly categorizing threats as *Low, Mild, or High Risk*.
-- 👁️ **AI Computer Vision:** Automated the analysis of user-uploaded disaster imagery to visually corroborate flooding or structural damage.
-- ⚡ **Real-Time Data Pipelines:** Leveraged **WebSocket (Socket.io)** architecture to broadcast AI-verified alerts to a live interactive map in **milliseconds**.
-- 🕷️ **Automated Intelligence:** Deployed **Python web scrapers** to continuously aggregate official meteorological data and coastal warnings.
+## What Was Done to Solve It
+- **NLP-Powered Triage:** Built a **Machine Learning microservice** using NLP to extract context and urgency from unstructured text, instantly categorizing threats as *Low, Mild, or High Risk*.
+- **AI Computer Vision:** Automated the analysis of user-uploaded disaster imagery to visually corroborate flooding or structural damage.
+- **Real-Time Data Pipelines:** Leveraged **WebSocket (Socket.io)** architecture to broadcast AI-verified alerts to a live interactive map in **milliseconds**.
+- **Automated Intelligence:** Deployed **Python web scrapers** to continuously aggregate official meteorological data and coastal warnings.
 
 ---
 
