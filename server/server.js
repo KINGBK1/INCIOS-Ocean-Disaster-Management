@@ -24,10 +24,18 @@ const allowedOrigins = [
   "https://incios-ocean-disaster-management.vercel.app",
 ];
 
+const checkOrigin = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+    callback(null, true);
+  } else {
+    callback(new Error("Not allowed by CORS"));
+  }
+};
+
 // Socket.io setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: checkOrigin,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   },
@@ -38,13 +46,7 @@ app.set("io", io);
 // CORS Middleware
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: checkOrigin,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   })
