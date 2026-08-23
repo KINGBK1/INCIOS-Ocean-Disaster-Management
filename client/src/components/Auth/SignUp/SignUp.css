@@ -499,26 +499,42 @@
     0% { --angle: 0deg; }
     100% { --angle: 360deg; }
   }
-  
+
   .recommended-badge {
     position: absolute;
-    top: -12px;
-    right: -10px;
-    background: linear-gradient(135deg, #138808 0%, #0D5A05 100%);
+    top: -36px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #1e293b;
     color: white;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 10;
-    border: 2px solid #fff;
-    animation: bounceBadge 2s infinite ease-in-out;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease-in-out;
+    pointer-events: none;
+    white-space: nowrap;
   }
   
-  @keyframes bounceBadge {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+  .recommended-badge::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px;
+    height: 8px;
+    background: #1e293b;
+  }
+  
+  .user-type__button:hover .recommended-badge {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
   }
   
   /* --- Input Fields --- */
