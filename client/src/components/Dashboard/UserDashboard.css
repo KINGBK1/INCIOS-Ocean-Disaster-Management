@@ -450,14 +450,17 @@ nav {
 }
 
 .action-buttons button:nth-child(3) {
-  background: var(--gray-800);
-  border-color: var(--gray-800);
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  border-color: #1e40af;
   color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .action-buttons button:nth-child(3):hover {
-  background: var(--gray-700);
-  border-color: var(--gray-700);
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  border-color: #1e3a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
 }
 
 .action-buttons button:disabled {
@@ -723,10 +726,19 @@ nav {
   }
   
   .map-legend {
-    display: none; /* Hide legend on mobile phones */
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2);
+    bottom: var(--space-2);
+    left: var(--space-2);
+    font-size: 0.7rem;
+    max-width: 150px;
   }
   
-  .legend-items {
+  .legend-title {
+    font-size: 0.75rem;
+    margin-bottom: var(--space-1);
+  }
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-2);
@@ -772,7 +784,20 @@ nav {
   }
   
   .map-legend {
-    display: none; /* Keep hidden on small mobile */
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-1) var(--space-2);
+    bottom: var(--space-1);
+    left: var(--space-1);
+    font-size: 0.65rem;
+    max-width: 120px;
+    background: rgba(255, 255, 255, 0.85);
+  }
+  
+  .legend-title {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
   }
   
   .legend-items {
