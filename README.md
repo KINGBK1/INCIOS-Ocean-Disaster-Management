@@ -15,6 +15,21 @@
 
 ---
 
+## The Problem
+Natural oceanic and coastal disasters (cyclones, tsunamis, severe floods) cause massive devastation primarily due to delayed communication between affected citizens and emergency responders. Existing systems suffer from fragmented data, lack of real-time coordination, and manual triage processes that severely delay critical resource allocation during the golden hour of rescue.
+
+## The Solution
+VARUNA serves as a unified, real-time command center. By leveraging **Artificial Intelligence (AI)** and **Natural Language Processing (NLP)**, VARUNA completely automates the triage of emergency reports. When a citizen submits a disaster report, the system's AI engines instantly analyze the text and imagery to predict the severity of the threat, allowing authorities to dispatch resources efficiently without manual verification delays.
+
+## What Was Done to Solve It
+To build this highly resilient and intelligent platform, we implemented the following core architectures:
+- **NLP-Powered Threat Analysis:** Integrated a dedicated machine learning microservice that utilizes Natural Language Processing (NLP) to extract context, urgency, and severity from unstructured citizen text reports, automatically categorizing them as Low, Mild, or High Risk.
+- **AI Computer Vision Assessment:** Automated the analysis of user-uploaded disaster imagery using AI to corroborate textual reports with visual evidence of flooding or structural damage.
+- **Real-Time Data Pipelines:** Built a robust WebSocket (Socket.io) infrastructure to broadcast AI-verified alerts to the live interactive map in milliseconds, ensuring all NGOs and District Disaster Management (DDMO) officials see the exact same critical data simultaneously.
+- **Automated Intelligence Gathering:** Deployed automated web scraping microservices to continuously aggregate meteorological data and coastal warnings, enriching our internal database with official forecasts.
+
+---
+
 ## Key Features
 
 - **Live Interactive Maps:** Real-time geolocation tracking and disaster zone mapping using Leaflet. Features satellite, terrain, and default layers for precise topographical assessment.
