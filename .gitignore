@@ -50,3 +50,5 @@ credentials.json
 google-services.json
 firebase.json
 serviceAccountKey.json
+datasource.txt
+ml-services/

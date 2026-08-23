@@ -1,5 +1,5 @@
 {
-  "name": "client",
+  "name": "varuna",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,16 +14,19 @@
     "axios": "^1.11.0",
     "js-cookie": "^3.0.5",
     "jwt-decode": "^4.0.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.542.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.8.2"
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.8.2",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "^5.0.2",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
