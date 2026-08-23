@@ -1118,8 +1118,8 @@ const UserDashboard = () => {
               color: proximityAlert.severity === 'CRITICAL' ? '#dc2626' : 
                      proximityAlert.severity === 'RED ALERT' ? '#dc2626' : '#f59e0b'
             }}>
-              {proximityAlert.severity === 'CRITICAL' ? '🚨' :
-               proximityAlert.severity === 'RED ALERT' ? '🔴' : '⚠️'}
+              {proximityAlert.severity === 'CRITICAL' ? <ShieldAlert size={48} /> :
+               proximityAlert.severity === 'RED ALERT' ? <AlertTriangle size={48} /> : <AlertCircle size={48} />}
             </div>
             
             <h2 style={{
@@ -1188,7 +1188,9 @@ const UserDashboard = () => {
               fontSize: '14px',
               textAlign: 'left'
             }}>
-              <h4 style={{ marginBottom: '10px', color: '#374151' }}>🛡️ Safety Recommendations:</h4>
+              <h4 style={{ marginBottom: '10px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldAlert size={20} /> Safety Recommendations:
+              </h4>
               <ul style={{ margin: '0', paddingLeft: '20px', color: '#374151' }}>
                 <li>Stay alert and monitor local emergency broadcasts</li>
                 <li>Keep emergency contacts and supplies ready</li>

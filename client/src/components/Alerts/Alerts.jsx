@@ -86,10 +86,10 @@ const Alerts = () => {
   // Get severity badge
   const getSeverityBadge = (severity) => {
     const severityConfig = {
-      high: { label: 'High Risk', class: 'severity-high', icon: '🚨' },
-      medium: { label: 'Medium Risk', class: 'severity-medium', icon: '⚠️' },
-      low: { label: 'Low Risk', class: 'severity-low', icon: '⚡' },
-      info: { label: 'Information', class: 'severity-info', icon: 'ℹ️' }
+      high: { label: 'High Risk', class: 'severity-high', icon: <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      medium: { label: 'Medium Risk', class: 'severity-medium', icon: <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      low: { label: 'Low Risk', class: 'severity-low', icon: <Zap size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      info: { label: 'Information', class: 'severity-info', icon: <Shield size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> }
     };
     return severityConfig[severity] || severityConfig.info;
   };
@@ -195,14 +195,14 @@ const Alerts = () => {
       }
 
       const data = await response.json();
-      console.log('🔍 RAW BACKEND RESPONSE:', data);
-      console.log('📊 Response type:', typeof data, 'Is array:', Array.isArray(data));
+      console.log('[API] RAW BACKEND RESPONSE:', data);
+      console.log('[API] Response type:', typeof data, 'Is array:', Array.isArray(data));
       
       if (Array.isArray(data) && data.length > 0) {
-        console.log('🌍 Backend returned', data.length, 'total alerts');
-        console.log('📝 Alert regions:', data.map(a => a.REGIONNAME));
-        console.log('🔍 First alert full structure:', data[0]);
-        console.log('🗂️ Alert fields:', Object.keys(data[0]));
+        console.log('[API] Backend returned', data.length, 'total alerts');
+        console.log('[API] Alert regions:', data.map(a => a.REGIONNAME));
+        console.log('[API] First alert full structure:', data[0]);
+        console.log('[API] Alert fields:', Object.keys(data[0]));
       }
       
       // Handle different response structures
@@ -218,14 +218,14 @@ const Alerts = () => {
       console.log(`Total alerts received: ${alertsData.length}`);
       
       // BHAI NO FILTERING NEEDED - BACKEND ALREADY RETURNS INDIA ONLY!
-      console.log('🇮🇳 BHAI BACKEND ALREADY FILTERED - TAKING ALL DATA AS INDIA ONLY!');
+      console.log('[FILTER] BACKEND ALREADY FILTERED - TAKING ALL DATA AS INDIA ONLY!');
       const indiaRelevantAlerts = alertsData; // Use all data from backend
       
-      console.log(`🇮🇳 FILTERING COMPLETE: ${indiaRelevantAlerts.length} India-relevant alerts found`);
+      console.log(`[FILTER] COMPLETE: ${indiaRelevantAlerts.length} India-relevant alerts found`);
       
       // NO DATE FILTERING - Show ALL India alerts from database
-      console.log(`📅 Showing ALL India alerts from database (no date restrictions)`);
-      console.log('👍 Final accepted alerts:', indiaRelevantAlerts.map(a => a.REGIONNAME));
+      console.log(`[FILTER] Showing ALL India alerts from database (no date restrictions)`);
+      console.log('[FILTER] Final accepted alerts:', indiaRelevantAlerts.map(a => a.REGIONNAME));
       console.log('Sample alert:', indiaRelevantAlerts[0]);
 
       // Process and enrich alerts data
@@ -248,12 +248,12 @@ const Alerts = () => {
       setDisplayedAlerts(newDisplayedAlerts);
       setHasMoreAlerts(newDisplayedAlerts.length < processedAlerts.length);
       
-      console.log(`🔄 Silently updated with ${processedAlerts.length} real alerts, displaying ${newDisplayedAlerts.length}`);
-      console.log('🎉 Real data loaded in background - users never saw loading screen!');
+      console.log(`[UI] Silently updated with ${processedAlerts.length} real alerts, displaying ${newDisplayedAlerts.length}`);
+      console.log('[UI] Real data loaded in background - users never saw loading screen!');
       
     } catch (err) {
       console.error("Error fetching alerts:", err);
-      console.log("🔄 Using local fallback data for presentation...");
+      console.log("[FALLBACK] Using local fallback data for presentation...");
       
       // PRESENTATION FALLBACK - Use local mock data if API fails
       const fallbackAlerts = [
@@ -437,9 +437,9 @@ const Alerts = () => {
         const initialFallbackAlerts = processedFallbackAlerts.slice(0, ALERTS_PER_PAGE);
         setDisplayedAlerts(initialFallbackAlerts);
         setHasMoreAlerts(processedFallbackAlerts.length > ALERTS_PER_PAGE);
-        console.log(`🔄 Backup fallback alerts loaded, displaying ${initialFallbackAlerts.length}`);
+        console.log(`[FALLBACK] Backup fallback alerts loaded, displaying ${initialFallbackAlerts.length}`);
       } else {
-        console.log('🔭 API failed but users already have fallback data - no problem!');
+        console.log('[API] Failed but users already have fallback data - no problem!');
       }
       
       setError(null); // Clear error since we have fallback data
@@ -658,7 +658,7 @@ const Alerts = () => {
     setHasMoreAlerts(processedFallbackAlerts.length > ALERTS_PER_PAGE);
     setLoading(false); // Hide loading animation immediately
     
-    console.log('✅ Fallback alerts loaded immediately! Now fetching real data in background...');
+    console.log('[INIT] Fallback alerts loaded immediately! Now fetching real data in background...');
     
     // BACKGROUND FETCH: Get real data after UI is shown
     setTimeout(() => {
@@ -991,7 +991,7 @@ const Alerts = () => {
               
               {!hasMoreAlerts && displayedAlerts.length > 0 && (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--gray-500)', gridColumn: '1 / -1' }}>
-                  <p>You've reached the end! All alerts loaded. ✨</p>
+                  <p>You've reached the end! All alerts loaded.</p>
                 </div>
               )}
             </>

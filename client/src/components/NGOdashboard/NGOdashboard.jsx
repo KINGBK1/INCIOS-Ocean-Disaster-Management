@@ -30,7 +30,9 @@ L.Icon.Default.mergeOptions({
 // NGO location icon
 const ngoIcon = L.divIcon({
   className: "custom-ngo-marker",
-  html: `<div style="width: 30px; height: 30px; background: #10b981; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px;">🏢</div>`,
+  html: `<div style="width: 30px; height: 30px; background: #10b981; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>
+  </div>`,
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
@@ -340,21 +342,21 @@ const NGODashboard = () => {
             <p className="text-sm text-gray-600">Vehicles</p>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
-            <div className="text-4xl mb-2">🏥</div>
+            <div className="text-4xl mb-2 flex justify-center"><Activity size={40} style={{ color: '#1e40af' }} /></div>
             <p className="text-sm font-bold text-gray-800">
               {ngoData.resources?.medicalSupplies ? 'Available' : 'N/A'}
             </p>
             <p className="text-sm text-gray-600">Medical</p>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-4xl mb-2">🍲</div>
+            <div className="text-4xl mb-2 flex justify-center"><Coffee size={40} style={{ color: '#1e40af' }} /></div>
             <p className="text-sm font-bold text-gray-800">
               {ngoData.resources?.foodSupplies ? 'Available' : 'N/A'}
             </p>
             <p className="text-sm text-gray-600">Food</p>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-4xl mb-2">🏠</div>
+            <div className="text-4xl mb-2 flex justify-center"><Home size={40} style={{ color: '#1e40af' }} /></div>
             <p className="text-2xl font-bold text-gray-800">{ngoData.resources?.shelterCapacity || 0}</p>
             <p className="text-sm text-gray-600">Shelter</p>
           </div>

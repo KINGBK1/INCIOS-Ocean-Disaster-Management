@@ -506,9 +506,9 @@ const LiveMap = () => {
               >
                 <Popup>
                   <div>
-                    {zone.type === "danger" && "🚨 Danger Zone"}
-                    {zone.type === "warning" && "⚠️ Warning Zone"}
-                    {zone.type === "safe" && "✅ Safe Zone"}
+                    {zone.type === "danger" && <><AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '4px' }} /> Danger Zone</>}
+                    {zone.type === "warning" && <><AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '4px' }} /> Warning Zone</>}
+                    {zone.type === "safe" && <><Activity size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '4px' }} /> Safe Zone</>}
                     {zone.label && <div>{zone.label}</div>}
                   </div>
                 </Popup>
@@ -526,7 +526,9 @@ const LiveMap = () => {
                 <Popup>
                   <div className="coastline-popup">
                     <h4 style={{ color: '#1e40af', marginBottom: '8px', fontSize: '16px' }}>
-                      🌊 {alert.alertType || 'Coastline Alert'}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Activity size={18} /> {alert.alertType || 'Coastline Alert'}
+                      </span>
                     </h4>
                     <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
                       <p><strong>State:</strong> {alert.state || 'N/A'}</p>
@@ -564,7 +566,9 @@ const LiveMap = () => {
                 >
                   <Popup>
                     <div>
-                      <h4>📍 Your Location</h4>
+                      <h4 style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                        <MapPin size={16} /> Your Location
+                      </h4>
                       <p>
                         {userLocation.lat.toFixed(6)},{" "}
                         {userLocation.lng.toFixed(6)}

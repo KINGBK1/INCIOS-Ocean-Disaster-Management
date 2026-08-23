@@ -24,7 +24,7 @@
   box-sizing: border-box;
 }
 
-/* ⬅️ Crucial Fix for Scrolling */
+/* ️ Crucial Fix for Scrolling */
 body, #root {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   margin: 0;

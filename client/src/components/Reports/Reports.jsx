@@ -254,7 +254,7 @@ const PostCard = React.memo(({
         </button>
 
         {copiedPostId === postId && (
-          <div className="copy-notification">✓ Link copied!</div>
+          <div className="copy-notification"><Link2 size={14} style={{ marginRight: "4px", verticalAlign: "middle" }}/> Link copied!</div>
         )}
       </div>
 
@@ -348,7 +348,7 @@ const reverseGeocode = useCallback(async (lat, lon) => {
     return fallback;
   }
   
-  console.log(`🌍 Geocoding: ${latitude}, ${longitude}`);
+  console.log(` Geocoding: ${latitude}, ${longitude}`);
   
   // Try primary geocoding service (Nominatim)
   try {
@@ -365,7 +365,7 @@ const reverseGeocode = useCallback(async (lat, lon) => {
     });
 
     const data = res.data;
-    console.log('📍 Geocoding response:', data);
+    console.log(' Geocoding response:', data);
     
     if (!data || !data.address) {
       throw new Error('No address data received');
@@ -420,7 +420,7 @@ const reverseGeocode = useCallback(async (lat, lon) => {
       locationName = `Location ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
     }
       
-    console.log(`✅ Geocoded to: ${locationName}`);
+    console.log(` Geocoded to: ${locationName}`);
     setLocationCache(prev => new Map(prev).set(key, locationName));
     return locationName;
     
@@ -439,7 +439,7 @@ const reverseGeocode = useCallback(async (lat, lon) => {
       });
       
       const fallbackData = fallbackRes.data;
-      console.log('🔄 Fallback geocoding response:', fallbackData);
+      console.log(' Fallback geocoding response:', fallbackData);
       
       if (fallbackData) {
         const locationParts = [];
@@ -452,7 +452,7 @@ const reverseGeocode = useCallback(async (lat, lon) => {
         
         if (locationParts.length > 0) {
           const locationName = locationParts.join(', ');
-          console.log(`✅ Fallback geocoded to: ${locationName}`);
+          console.log(` Fallback geocoded to: ${locationName}`);
           setLocationCache(prev => new Map(prev).set(key, locationName));
           return locationName;
         }
@@ -594,7 +594,7 @@ const isDisasterPost = useCallback((post) => {
         });
         setComments(initialComments);
         
-        console.log(`⚡ Loaded ${initialPosts.length} posts INSTANTLY! Now geocoding in background...`);
+        console.log(` Loaded ${initialPosts.length} posts INSTANTLY! Now geocoding in background...`);
         
         // BACKGROUND GEOCODING: Process location names after posts are shown
         setTimeout(() => {
@@ -610,7 +610,7 @@ const isDisasterPost = useCallback((post) => {
                   // Mark this post as loading
                   setLoadingLocations(prev => new Set(prev).add(post._id));
                   
-                  console.log(`🌍 Background geocoding ${index + 1}/${initialPosts.length}: ${lat}, ${lon}`);
+                  console.log(` Background geocoding ${index + 1}/${initialPosts.length}: ${lat}, ${lon}`);
                   try {
                     const locationName = await reverseGeocode(lat, lon);
                     if (locationName && locationName !== post.location) {
@@ -622,10 +622,10 @@ const isDisasterPost = useCallback((post) => {
                             : p
                         )
                       );
-                      console.log(`✅ Updated location for post ${post._id}: ${locationName}`);
+                      console.log(` Updated location for post ${post._id}: ${locationName}`);
                     }
                   } catch (error) {
-                    console.warn(`⚠️ Geocoding failed for ${lat}, ${lon}:`, error);
+                    console.warn(`️ Geocoding failed for ${lat}, ${lon}:`, error);
                   } finally {
                     // Remove loading state
                     setLoadingLocations(prev => {
@@ -655,8 +655,8 @@ const isDisasterPost = useCallback((post) => {
     // Register service worker for API caching
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then(registration => console.log('📦 Service worker registered for API caching'))
-        .catch(error => console.log('❌ Service worker registration failed:', error));
+        .then(registration => console.log(' Service worker registered for API caching'))
+        .catch(error => console.log(' Service worker registration failed:', error));
     }
     
     // Fetch initial posts immediately - much faster now!
@@ -682,7 +682,7 @@ const isDisasterPost = useCallback((post) => {
     });
     
     socket.on("newPost", async (newPost) => {
-      console.log("📨 Received new post via socket:", newPost);
+      console.log(" Received new post via socket:", newPost);
       
       // Use the reusable filter function
       if (isDisasterPost(newPost)) {
@@ -697,10 +697,10 @@ const isDisasterPost = useCallback((post) => {
         }
         
         const processedPost = { ...newPost, locationName };
-        console.log("✅ Adding new post to reports:", processedPost);
+        console.log(" Adding new post to reports:", processedPost);
         setPosts((prev) => [processedPost, ...prev]);
       } else {
-        console.log("⚠️ Skipping non-disaster post:", newPost.severityPrediction);
+        console.log("️ Skipping non-disaster post:", newPost.severityPrediction);
       }
     });
 
@@ -800,14 +800,14 @@ const handleUpvote = useCallback(async (postId) => {
   useEffect(() => {
     if (socketConnected) return; // Only poll when disconnected
 
-    console.log('🕒 Starting polling fallback for reports...');
+    console.log(' Starting polling fallback for reports...');
     const interval = setInterval(() => {
       refreshPosts();
     }, 30000); // Reduced frequency: every 30s instead of 15s
 
     return () => {
       clearInterval(interval);
-      console.log('🕒 Stopped polling fallback for reports.');
+      console.log(' Stopped polling fallback for reports.');
     };
   }, [socketConnected]);
 
@@ -841,7 +841,7 @@ const handleUpvote = useCallback(async (postId) => {
         setCurrentPage(1);
         setHasMorePosts(filteredPosts.length > POSTS_PER_PAGE);
         
-        console.log("✅ Posts refreshed successfully:", initialPosts.length, "of", filteredPosts.length);
+        console.log(" Posts refreshed successfully:", initialPosts.length, "of", filteredPosts.length);
       }
     } catch (err) {
       console.error("Error refreshing posts:", err);
@@ -864,7 +864,7 @@ const handleUpvote = useCallback(async (postId) => {
         // INSTANT LOADING: Add posts immediately without geocoding
         setPosts(prevPosts => [...prevPosts, ...nextPagePosts]);
         
-        console.log(`⚡ Added ${nextPagePosts.length} posts instantly! Geocoding in background...`);
+        console.log(` Added ${nextPagePosts.length} posts instantly! Geocoding in background...`);
         
         // BACKGROUND GEOCODING: Process locations after posts are shown
         setTimeout(() => {
@@ -880,7 +880,7 @@ const handleUpvote = useCallback(async (postId) => {
                   // Mark this post as loading
                   setLoadingLocations(prev => new Set(prev).add(post._id));
                   
-                  console.log(`🌍 Background geocoding more post ${index + 1}/${nextPagePosts.length}: ${lat}, ${lon}`);
+                  console.log(` Background geocoding more post ${index + 1}/${nextPagePosts.length}: ${lat}, ${lon}`);
                   try {
                     const locationName = await reverseGeocode(lat, lon);
                     if (locationName && locationName !== post.location) {
@@ -892,10 +892,10 @@ const handleUpvote = useCallback(async (postId) => {
                             : p
                         )
                       );
-                      console.log(`✅ Updated location for more post ${post._id}: ${locationName}`);
+                      console.log(` Updated location for more post ${post._id}: ${locationName}`);
                     }
                   } catch (error) {
-                    console.warn(`⚠️ Geocoding failed for ${lat}, ${lon}:`, error);
+                    console.warn(`️ Geocoding failed for ${lat}, ${lon}:`, error);
                   } finally {
                     // Remove loading state
                     setLoadingLocations(prev => {
@@ -922,7 +922,7 @@ const handleUpvote = useCallback(async (postId) => {
           return newComments;
         });
         
-        console.log(`✅ Loaded ${nextPagePosts.length} more posts instantly! (${endIndex}/${allPostsData.length})`);
+        console.log(` Loaded ${nextPagePosts.length} more posts instantly! (${endIndex}/${allPostsData.length})`);
       } else {
         setHasMorePosts(false);
       }
@@ -967,12 +967,12 @@ const handleUpvote = useCallback(async (postId) => {
     }
     
     const severityMap = {
-      high_risk: { label: 'High Risk', class: 'high-risk', icon: '🚨' },
-      mild_risk: { label: 'Mild Risk', class: 'mild-risk', icon: '⚠️' },
-      low_risk: { label: 'Low Risk', class: 'low-risk', icon: '⚡' },
-      non_disaster: { label: 'Report', class: 'report', icon: '📝' }
+      high_risk: { label: 'High Risk', class: 'high-risk', icon: <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      mild_risk: { label: 'Mild Risk', class: 'mild-risk', icon: <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      low_risk: { label: 'Low Risk', class: 'low-risk', icon: <TrendingUp size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> },
+      non_disaster: { label: 'Report', class: 'report', icon: <MessageCircle size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> }
     };
-    return severityMap[severity] || { label: 'Community Post', class: 'community', icon: '💬' };
+    return severityMap[severity] || { label: 'Community Post', class: 'community', icon: <Users size={14} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> };
   }, []);
 
   const filteredPosts = useMemo(() => {
@@ -1067,19 +1067,19 @@ const handleUpvote = useCallback(async (postId) => {
               className={`filter-tab ${filter === 'high_risk' ? 'active' : ''}`}
               onClick={() => setFilter('high_risk')}
             >
-              🚨 High Risk
+              <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> High Risk
             </button>
             <button 
               className={`filter-tab ${filter === 'mild_risk' ? 'active' : ''}`}
               onClick={() => setFilter('mild_risk')}
             >
-              ⚠️ Mild Risk
+              <AlertTriangle size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Mild Risk
             </button>
             <button 
               className={`filter-tab ${filter === 'low_risk' ? 'active' : ''}`}
               onClick={() => setFilter('low_risk')}
             >
-              ⚡ Low Risk
+              <TrendingUp size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Low Risk
             </button>
           </div>
         </div>
@@ -1167,7 +1167,7 @@ const handleUpvote = useCallback(async (postId) => {
               
               {!hasMorePosts && posts.length > 0 && (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <p>You've reached the end! ✨</p>
+                  <p>You've reached the end!</p>
                 </div>
               )}
             </>

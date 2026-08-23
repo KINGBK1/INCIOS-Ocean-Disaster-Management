@@ -22,7 +22,7 @@ const SignUpPage = () => {
   const { login } = useContext(AuthContext);
   const [userType, setUserType] = useState("");
   
-  // ✅ All state declarations at the top level
+  //  All state declarations at the top level
   const [formData, setFormData] = useState({
     entityId: "",
     username: "",
@@ -158,7 +158,7 @@ const SignUpPage = () => {
     }
   };
 
-  // ✅ Helper function to render NGO fields
+  //  Helper function to render NGO fields
   const renderNGOFields = () => (
     <>
       <div className="input__container">
@@ -263,7 +263,7 @@ const SignUpPage = () => {
     </>
   );
 
-  // ✅ Main render function for form fields
+  //  Main render function for form fields
   const renderSpecificFields = () => {
     const isUser = userType === "user";
     

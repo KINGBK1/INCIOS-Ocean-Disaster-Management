@@ -31,7 +31,7 @@ export default function LocationTracker() {
 
   return (
     <div className="p-6 bg-white rounded-2xl shadow-lg max-w-md mx-auto mt-10 text-center">
-      <h1 className="text-2xl font-bold mb-4">📍 Live Location Tracker</h1>
+      <h1 className="text-2xl font-bold mb-4"> Live Location Tracker</h1>
       {error && <p className="text-red-500">{error}</p>}
       {location.lat ? (
         <div className="space-y-2">

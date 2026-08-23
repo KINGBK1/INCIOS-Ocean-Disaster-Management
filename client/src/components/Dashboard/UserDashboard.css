@@ -739,6 +739,8 @@ nav {
     font-size: 0.75rem;
     margin-bottom: var(--space-1);
   }
+  
+  .legend-items {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-2);
