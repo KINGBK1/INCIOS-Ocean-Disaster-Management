@@ -11,7 +11,6 @@ import postRoutes from "./routes/postRoutes.js";
 import coastRoutes from "./routes/coastRoutes.js";
 import incoisRoutes from "./routes/incoisRoutes.js";
 
-
 dotenv.config();
 
 const app = express();
@@ -39,6 +38,9 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   },
+  // Add transport configuration
+  transports: ["polling", "websocket"],
+  allowEIO3: true
 });
 
 app.set("io", io);
@@ -59,7 +61,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/disasters", mapRoutes);
 app.use("/api/posts", postRoutes);
-app.use("/api/alerts", coastRoutes)
+app.use("/api/alerts", coastRoutes);
 app.use("/api/incois", incoisRoutes);
 
 // Error handling middleware
@@ -70,7 +72,7 @@ app.use((err, req, res, next) => {
 
 // DB Connection
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGO_URI || process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => {
     console.error("MongoDB connection failed:", err);
@@ -82,15 +84,55 @@ app.get("/", (req, res) => {
   res.send("Disaster Management API is running...");
 });
 
-// Socket connection log
+// Enhanced Socket connection handling
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+  console.log(`User connected: ${socket.id}`);
+  
+  // Send welcome message to connected client
+  socket.emit("connected", { message: "Successfully connected to disaster management server" });
+  
+  // Handle client requests for initial data
+  socket.on("requestPosts", async () => {
+    try {
+      // You can emit recent posts here if needed
+      console.log("Client requested posts");
+    } catch (error) {
+      console.error("Error handling requestPosts:", error);
+    }
+  });
+  
+  // Handle zone updates request
+  socket.on("requestZones", async () => {
+    try {
+      console.log("Client requested zones");
+      // You can emit current zones here if needed
+    } catch (error) {
+      console.error("Error handling requestZones:", error);
+    }
+  });
+  
+  // Handle disconnection
+  socket.on("disconnect", (reason) => {
+    console.log(`User disconnected: ${socket.id}, reason: ${reason}`);
+  });
+  
+  // Handle connection errors
+  socket.on("connect_error", (error) => {
+    console.log("Socket connection error:", error);
+  });
+});
+
+// Health check for socket.io
+app.get("/api/socket/health", (req, res) => {
+  res.json({
+    status: "ok",
+    connectedClients: io.engine.clientsCount,
+    timestamp: new Date().toISOString()
   });
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Socket.IO server ready on port ${PORT}`);
 });

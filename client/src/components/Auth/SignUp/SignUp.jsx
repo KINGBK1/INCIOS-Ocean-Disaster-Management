@@ -21,14 +21,22 @@ const SignUpPage = () => {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
   const [userType, setUserType] = useState("");
+  
+  // ✅ All state declarations at the top level
   const [formData, setFormData] = useState({
     entityId: "",
     username: "",
     password: "",
     confirmPassword: "",
     location: "",
+    email: "",
+    phone: "",
+    organizationName: "",
+    serviceRadius: 50000,
+    specializations: "",
     termsAccepted: false,
   });
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -48,14 +56,11 @@ const SignUpPage = () => {
         (position) => {
           setFormData((prev) => ({
             ...prev,
-            location: `${position.coords.latitude.toFixed(
-              4
-            )}, ${position.coords.longitude.toFixed(4)}`,
+            location: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
           }));
         },
         (error) => {
           console.error("Geolocation error:", error);
-          // Don't show an alert here, just handle the state
         }
       );
     }
@@ -67,7 +72,6 @@ const SignUpPage = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // Clear password error on change
     if (name === "password" || name === "confirmPassword") {
       setPasswordError("");
     }
@@ -92,25 +96,48 @@ const SignUpPage = () => {
     try {
       const payload = {
         role: userType,
-        username:
-          userType === "user" ? formData.username : `${userType}_${Date.now()}`,
+        username: userType === "user" ? formData.username : `${userType}_${Date.now()}`,
         password: userType === "user" ? formData.password : undefined,
         location: formData.location,
         [`${userType}Id`]: formData.entityId || undefined,
       };
+
+      // Add NGO-specific fields
+      if (userType === 'ngo') {
+        payload.email = formData.email;
+        payload.phone = formData.phone;
+        
+        const [lat, lng] = formData.location.split(',').map(s => parseFloat(s.trim()));
+        
+        payload.ngoDetails = {
+          organizationName: formData.organizationName,
+          registrationNumber: formData.entityId,
+          serviceRadius: parseInt(formData.serviceRadius) || 50000,
+          specializations: formData.specializations 
+            ? formData.specializations.split(',').map(s => s.trim()) 
+            : [],
+          emergencyContact: formData.phone,
+          coordinates: { lat, lng }
+        };
+      }
 
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`,
         payload
       );
 
-      // Set user name and show animation
-      setUserName(res.data.user?.name || formData.username || "New User");
-      login(res.data.token);
-      setShowAnimation(true);
+      setUserName(res.data.user?.name || formData.organizationName || formData.username || "New User");
+      
+      if (userType === 'ngo') {
+        alert("NGO account created successfully! Your account is pending admin approval. You will receive an email notification once approved.");
+        navigate('/signin');
+      } else {
+        login(res.data.token);
+        setShowAnimation(true);
+      }
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert("Error creating account.");
+      alert("Error creating account: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -121,30 +148,137 @@ const SignUpPage = () => {
         { token: credentialResponse.credential },
         { withCredentials: true }
       );
-      
-      // Set user name and show animation
+
       setUserName(res.data.user?.name || "New User");
       login(res.data.token);
       setShowAnimation(true);
     } catch (err) {
       console.error("Google login error:", err.response?.data || err.message);
-      alert(
-        `Google login failed: ${err.response?.data?.message || err.message}`
-      );
+      alert(`Google login failed: ${err.response?.data?.message || err.message}`);
     }
   };
 
+  // ✅ Helper function to render NGO fields
+  const renderNGOFields = () => (
+    <>
+      <div className="input__container">
+        <label htmlFor="entityId" className="input__label">NGO Registration Number</label>
+        <div className="input__wrapper">
+          <input
+            id="entityId"
+            type="text"
+            name="entityId"
+            value={formData.entityId}
+            onChange={handleInputChange}
+            placeholder="Enter NGO Registration Number"
+            className="input__field"
+          />
+          <Building size={20} className="input__icon ngo" />
+        </div>
+      </div>
+
+      <div className="input__container">
+        <label htmlFor="organizationName" className="input__label">Organization Name</label>
+        <div className="input__wrapper">
+          <input
+            id="organizationName"
+            type="text"
+            name="organizationName"
+            value={formData.organizationName || ''}
+            onChange={handleInputChange}
+            placeholder="Enter organization name"
+            className="input__field"
+          />
+        </div>
+      </div>
+
+      <div className="input__container">
+        <label htmlFor="email" className="input__label">Official Email (for alerts)</label>
+        <div className="input__wrapper">
+          <input
+            id="email"
+            type="email"
+            name="email"
+            value={formData.email || ''}
+            onChange={handleInputChange}
+            placeholder="contact@yourorganization.org"
+            className="input__field"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="input__container">
+        <label htmlFor="phone" className="input__label">Emergency Contact Number</label>
+        <div className="input__wrapper">
+          <input
+            id="phone"
+            type="tel"
+            name="phone"
+            value={formData.phone || ''}
+            onChange={handleInputChange}
+            placeholder="+91 XXXXXXXXXX"
+            className="input__field"
+          />
+        </div>
+      </div>
+
+      <div className="input__container">
+        <label htmlFor="serviceRadius" className="input__label">Service Radius (in meters)</label>
+        <div className="input__wrapper">
+          <input
+            id="serviceRadius"
+            type="number"
+            name="serviceRadius"
+            value={formData.serviceRadius || 50000}
+            onChange={handleInputChange}
+            placeholder="50000"
+            className="input__field"
+            min="1000"
+            max="200000"
+          />
+        </div>
+        <p className="form__helper-text">
+          You'll receive alerts for disaster zones within this radius from your location.
+        </p>
+      </div>
+
+      <div className="input__container">
+        <label htmlFor="specializations" className="input__label">Areas of Specialization</label>
+        <div className="input__wrapper">
+          <input
+            id="specializations"
+            type="text"
+            name="specializations"
+            value={formData.specializations || ''}
+            onChange={handleInputChange}
+            placeholder="e.g., Flood Relief, Medical Aid, Shelter"
+            className="input__field"
+          />
+        </div>
+        <p className="form__helper-text">
+          Enter comma-separated specializations
+        </p>
+      </div>
+    </>
+  );
+
+  // ✅ Main render function for form fields
   const renderSpecificFields = () => {
     const isUser = userType === "user";
+    
+    if (userType === 'ngo') {
+      return renderNGOFields();
+    }
+    
     const entityIdPlaceholder = {
       admin: "Admin ID",
-      ngo: "NGO ID",
       ddmo: "DDMO Official ID",
     }[userType];
 
     return (
       <div className="form__section">
-        {!isUser && (
+        {!isUser && userType !== 'ngo' && (
           <div className="input__container">
             <label htmlFor="entityId" className="input__label">
               {entityIdPlaceholder}
@@ -172,9 +306,7 @@ const SignUpPage = () => {
         {isUser && (
           <>
             <div className="input__container">
-              <label htmlFor="username" className="input__label">
-                Username
-              </label>
+              <label htmlFor="username" className="input__label">Username</label>
               <div className="input__wrapper">
                 <input
                   id="username"
@@ -189,9 +321,7 @@ const SignUpPage = () => {
               </div>
             </div>
             <div className="input__container">
-              <label htmlFor="password" className="input__label">
-                Password
-              </label>
+              <label htmlFor="password" className="input__label">Password</label>
               <div className="input__wrapper">
                 <input
                   id="password"
@@ -212,9 +342,7 @@ const SignUpPage = () => {
               </div>
             </div>
             <div className="input__container">
-              <label htmlFor="confirmPassword" className="input__label">
-                Confirm Password
-              </label>
+              <label htmlFor="confirmPassword" className="input__label">Confirm Password</label>
               <div className="input__wrapper">
                 <input
                   id="confirmPassword"
@@ -230,11 +358,7 @@ const SignUpPage = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="input__password-toggle"
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -247,7 +371,15 @@ const SignUpPage = () => {
 
   const isFormValid = () => {
     if (!userType || !formData.termsAccepted) return false;
+    
+    if (userType === 'ngo') {
+      return formData.entityId.trim() !== "" && 
+             formData.email.trim() !== "" && 
+             formData.organizationName.trim() !== "";
+    }
+    
     if (userType !== "user" && formData.entityId.trim() === "") return false;
+    
     if (userType === "user") {
       if (
         formData.username.trim() === "" ||
@@ -266,15 +398,13 @@ const SignUpPage = () => {
 
   return (
     <div className="page__wrapper">
-      {/* Tri-Color Animation */}
-      <TriColorAnimation 
+      <TriColorAnimation
         isVisible={showAnimation}
         onComplete={handleAnimationComplete}
         userName={userName}
       />
-      
+
       <div className="signup-layout">
-        {/* Left Side: Kerala Backwaters Visuals */}
         <div className="signup-layout__visuals">
           <img src={nightImage} alt="Night Mountain City" className="background-image" />
           <div className="overlay"></div>
@@ -298,21 +428,18 @@ const SignUpPage = () => {
           </div>
         </div>
 
-        {/* Right Side: Sign-up Form */}
         <div className="signup-layout__form-container">
           <div className="form__header">
             <h2 className="form__title">Create Your Account</h2>
             <p className="form__subtitle">
               {!userType && "Choose your role to get started."}
               {userType === "admin" && "Fill in your Admin details below."}
-              {userType === "ngo" &&
-                "Provide your NGO credentials to continue."}
+              {userType === "ngo" && "Provide your NGO credentials to continue."}
               {userType === "ddmo" && "Enter your DDMO Official information."}
               {userType === "user" && "Set up your General User account."}
             </p>
           </div>
           <div className="form__main">
-            {/* User Type Selection */}
             <div className="form__section user-type-grid">
               {userTypes.map((type) => {
                 const IconComponent = type.icon;
@@ -347,10 +474,8 @@ const SignUpPage = () => {
               })}
             </div>
 
-            {/* Dynamic Form Fields */}
             {userType && renderSpecificFields()}
 
-            {/* Google OAuth - only for regular users */}
             {userType === "user" && (
               <div className="oauth-section">
                 <div className="divider-container">
@@ -367,13 +492,10 @@ const SignUpPage = () => {
               </div>
             )}
 
-            {/* Location & Terms */}
             {userType && (
               <>
                 <div className="form__section">
-                  <label htmlFor="location" className="input__label">
-                    Your Location
-                  </label>
+                  <label htmlFor="location" className="input__label">Your Location</label>
                   <div className="input__wrapper">
                     <input
                       id="location"
@@ -388,8 +510,7 @@ const SignUpPage = () => {
                     <MapPin size={20} className="input__icon location" />
                   </div>
                   <p className="form__helper-text">
-                    Your location is used to connect you with relevant local
-                    resources.
+                    Your location is used to connect you with relevant local resources.
                   </p>
                 </div>
 
@@ -403,21 +524,16 @@ const SignUpPage = () => {
                     />
                     <span>
                       I agree to the{" "}
-                      <Link to="/terms" className="link--inline">
-                        Terms and Conditions
-                      </Link>
+                      <Link to="/terms" className="link--inline">Terms and Conditions</Link>
                     </span>
                   </label>
                 </div>
 
-                {/* Submit Button */}
                 <div className="form__section form__actions">
                   <button
                     onClick={handleSubmit}
                     disabled={!isFormValid()}
-                    className={`button button--primary ${
-                      !isFormValid() ? "is-disabled" : ""
-                    }`}
+                    className={`button button--primary ${!isFormValid() ? "is-disabled" : ""}`}
                   >
                     Create Account →
                   </button>
@@ -425,12 +541,9 @@ const SignUpPage = () => {
               </>
             )}
           </div>
-          {/* Already a user */}
           <div className="form__footer">
             <span>Already have an account? </span>
-            <Link to="/signin" className="link--inline">
-              Sign in
-            </Link>
+            <Link to="/signin" className="link--inline">Sign in</Link>
           </div>
         </div>
       </div>
