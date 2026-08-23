@@ -1,38 +1,37 @@
 <div align="center">
   <img src="./client/src/assets/varuna.png" alt="VARUNA Logo" width="120" />
-  <h1>🌊 VARUNA: Ocean Disaster Management System</h1>
+  <h1>VARUNA: Ocean Disaster Management System</h1>
   <p><strong>A unified, government-grade disaster management platform for building a resilient nation.</strong></p>
   
   [![React](https://img.shields.io/badge/React-19.0-blue.svg?style=flat&logo=react)](https://reactjs.org/)
   [![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg?style=flat&logo=node.js)](https://nodejs.org/)
   [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-brightgreen.svg?style=flat&logo=mongodb)](https://www.mongodb.com/)
   [![Socket.io](https://img.shields.io/badge/Socket.io-Realtime-black.svg?style=flat&logo=socket.io)](https://socket.io/)
-  [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](#license)
 </div>
 
 <br />
 
-> **VARUNA** (named after the Hindu deity of water and oceans) is a comprehensive, real-time disaster management and response coordination platform. Built with a modern tech stack, VARUNA bridges the gap between citizens, NGOs, and disaster management officials to ensure rapid, coordinated responses to oceanic and coastal emergencies.
+> **VARUNA** (named after the Hindu deity of water and oceans) is a comprehensive, real-time disaster management and response coordination platform. Built with a modern technology stack, VARUNA bridges the gap between citizens, NGOs, and disaster management officials to ensure rapid, coordinated responses to oceanic and coastal emergencies.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- 🗺️ **Live Interactive Maps:** Real-time geolocation tracking and disaster zone mapping using Leaflet. Features satellite, terrain, and default layers for precise topographical assessment.
-- ⚡ **Real-Time WebSockets:** Powered by Socket.io for instantaneous disaster alerts, live post updates, and real-time dashboard syncing across all active clients.
-- 🛡️ **Role-Based Access Control (RBAC):** Tailored dashboards and capabilities for multiple user tiers: 
+- **Live Interactive Maps:** Real-time geolocation tracking and disaster zone mapping using Leaflet. Features satellite, terrain, and default layers for precise topographical assessment.
+- **Real-Time WebSockets:** Powered by Socket.io for instantaneous disaster alerts, live post updates, and real-time dashboard syncing across all active clients.
+- **Role-Based Access Control (RBAC):** Tailored dashboards and capabilities for multiple user tiers: 
   - **General Users** (Citizen reporting)
   - **NGOs** (Relief coordination)
   - **DDMO Officials** (District authorities)
   - **Admins** (System oversight)
-- 🔐 **Advanced Authentication:** Seamless secure login via JWT (JSON Web Tokens) alongside Google OAuth 2.0 integration.
-- 🎨 **Modern UI/UX Design System:** Mobile-first, glass-morphism UI built from scratch using raw CSS. Features fluid micro-animations, accessible color contrast, and a professional thematic design inspired by Indian national colors.
-- 📡 **Automated Data Scraping:** Integrated Python & Node.js scraping services (Cheerio) to aggregate official coastal warnings and weather alerts.
-- ☁️ **Media Management:** Direct Cloudinary integration for scalable disaster image uploads and report attachments.
+- **Advanced Authentication:** Seamless secure login via JWT (JSON Web Tokens) alongside Google OAuth 2.0 integration.
+- **Modern UI/UX Design System:** Mobile-first, glass-morphism UI built from scratch using custom CSS. Features fluid micro-animations, accessible color contrast, and a professional thematic design inspired by Indian national colors.
+- **Automated Data Scraping:** Integrated Python and Node.js scraping services (Cheerio) to aggregate official coastal warnings and weather alerts.
+- **Media Management:** Direct Cloudinary integration for scalable disaster image uploads and report attachments.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 **Frontend (Client)**
 - **Framework:** React 19 + Vite
@@ -40,7 +39,7 @@
 - **Mapping:** React-Leaflet
 - **State/Data:** Context API, Axios
 - **Auth:** `@react-oauth/google`, JWT Decode
-- **Styling:** Custom CSS with robust CSS variables & BEM methodology
+- **Styling:** Custom CSS with robust CSS variables and BEM methodology
 
 **Backend (Server)**
 - **Runtime & Framework:** Node.js, Express.js
@@ -51,7 +50,7 @@
 
 ---
 
-## 🏗️ Project Architecture
+## Project Architecture
 
 ```text
 VARUNA-disaster-management/
@@ -71,10 +70,10 @@ VARUNA-disaster-management/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) (v18+) and [MongoDB](https://www.mongodb.com/) installed and running.
+Ensure you have [Node.js](https://nodejs.org/) (v18+) and [MongoDB](https://www.mongodb.com/) installed and running.
 
 ### 1. Clone the repository
 ```bash
@@ -112,16 +111,16 @@ Visit `http://localhost:5173` to view the application in your browser.
 
 ---
 
-## 🎨 UI & Design Philosophy
+## UI and Design Philosophy
 VARUNA was designed with a strict focus on usability during high-stress emergency situations:
-- **High Contrast & Clarity:** Utilizing an official "Government Blue" (`#1e40af`) paired with readable typography (`Inter` & `Poppins`).
-- **Responsive by Default:** CSS Grid and Flexbox layouts ensure the command center works flawlessly whether viewed on a 4K monitor in a control room or a mobile phone in the field.
+- **High Contrast & Clarity:** Utilizing an official "Government Blue" (`#1e40af`) paired with readable typography (`Inter` and `Poppins`).
+- **Responsive by Default:** CSS Grid and Flexbox layouts ensure the command center works flawlessly whether viewed on a high-resolution monitor in a control room or a mobile phone in the field.
 - **Thematic Flourishes:** Subtle integrations of the Indian Tricolor in loading states and authentication borders add a professional, patriotic polish.
 
 ---
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! 
+## Contributing
+Contributions, issues, and feature requests are welcome. 
 If you are an engineer looking to improve the core platform or add integrations for weather APIs, feel free to fork the repository and submit a Pull Request.
 
 1. Fork the Project
@@ -133,5 +132,5 @@ If you are an engineer looking to improve the core platform or add integrations 
 ---
 
 <div align="center">
-  <p>Built with ❤️ for a safer, more resilient tomorrow.</p>
+  <p>Built for a safer, more resilient tomorrow.</p>
 </div>
