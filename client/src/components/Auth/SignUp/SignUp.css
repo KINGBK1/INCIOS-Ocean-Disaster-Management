@@ -449,17 +449,44 @@
   .user-type__button.is-recommended {
     border-color: transparent !important;
     overflow: visible;
+    background: transparent !important;
   }
   
+  /* Ensure icon, label, and badge stay above the backgrounds */
+  .user-type__button.is-recommended > * {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* The animated gradient border */
   .user-type__button.is-recommended::before {
     content: '';
     position: absolute;
     top: -3px; left: -3px; right: -3px; bottom: -3px;
     background: linear-gradient(90deg, #FF9933, #138808, #FF9933, #138808);
     background-size: 300% 300%;
-    z-index: -1;
+    z-index: 0;
     border-radius: 14px;
     animation: tricolorBorder 3s linear infinite;
+  }
+  
+  /* The inner button background */
+  .user-type__button.is-recommended::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #fff;
+    z-index: 1;
+    border-radius: 10px;
+    transition: background 0.25s;
+  }
+  
+  .user-type__button.is-recommended:hover::after {
+    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  }
+  
+  .user-type__button.is-recommended.is-active::after {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   }
   
   @keyframes tricolorBorder {
