@@ -316,6 +316,7 @@ const SignUpPage = () => {
             <div className="form__section user-type-grid">
               {userTypes.map((type) => {
                 const IconComponent = type.icon;
+                const isRecommended = type.value === "user";
                 return (
                   <button
                     key={type.value}
@@ -332,8 +333,11 @@ const SignUpPage = () => {
                     }}
                     className={`user-type__button ${
                       userType === type.value ? "is-active" : ""
-                    }`}
+                    } ${isRecommended ? "is-recommended" : ""}`}
                   >
+                    {isRecommended && (
+                      <div className="recommended-badge">Recommended</div>
+                    )}
                     <IconComponent
                       className={`user-type__icon ${type.color}`}
                     />

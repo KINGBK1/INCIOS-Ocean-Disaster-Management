@@ -74,9 +74,13 @@ export const googleLogin = async (req, res) => {
     const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
     const { sub: googleId, email, name, picture } = ticket.getPayload();
 
-    let user = await User.findOne({ googleId });
+    let user = await User.findOne({ email });
     if (!user) {
       user = new User({ googleId, email, username: name, picture, role: "user", isApproved: true });
+      await user.save();
+    } else if (!user.googleId) {
+      user.googleId = googleId;
+      if (!user.picture) user.picture = picture;
       await user.save();
     }
 

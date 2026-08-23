@@ -66,7 +66,7 @@ const SignInPage = () => {
     try {
       const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/google-login`, {
         token: credentialResponse.credential,
-      });
+      }, { withCredentials: true });
       
       // Set user name and show animation
       setUserName(res.data.user?.name || res.data.username || "User");

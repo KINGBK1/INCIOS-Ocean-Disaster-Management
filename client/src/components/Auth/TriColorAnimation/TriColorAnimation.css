@@ -153,7 +153,7 @@
     left: calc(50% - 200px);
     transform: scaleX(1) skewX(0deg);
   }
-  40.04% {
+  70% {
     left: calc(50% - 200px);
     transform: scaleX(1) skewX(0deg);
   }
@@ -172,7 +172,7 @@
     right: calc(50% - 200px);
     transform: scaleX(1) skewX(0deg);
   }
-  40.04% {
+  70% {
     right: calc(50% - 200px);
     transform: scaleX(1) skewX(0deg);
   }

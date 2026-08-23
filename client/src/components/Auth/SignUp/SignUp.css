@@ -445,6 +445,49 @@
     text-align: center;
   }
   
+  /* --- Recommended Badge & Border --- */
+  .user-type__button.is-recommended {
+    border-color: transparent !important;
+    overflow: visible;
+  }
+  
+  .user-type__button.is-recommended::before {
+    content: '';
+    position: absolute;
+    top: -3px; left: -3px; right: -3px; bottom: -3px;
+    background: linear-gradient(90deg, #FF9933, #138808, #FF9933, #138808);
+    background-size: 300% 300%;
+    z-index: -1;
+    border-radius: 14px;
+    animation: tricolorBorder 3s linear infinite;
+  }
+  
+  @keyframes tricolorBorder {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+  
+  .recommended-badge {
+    position: absolute;
+    top: -12px;
+    right: -10px;
+    background: linear-gradient(135deg, #138808 0%, #0D5A05 100%);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+    border: 2px solid #fff;
+    animation: bounceBadge 2s infinite ease-in-out;
+  }
+  
+  @keyframes bounceBadge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  
   /* --- Input Fields --- */
   .input__container {
     position: relative;
