@@ -458,16 +458,22 @@
     z-index: 2;
   }
   
+  /* Define a custom property for the angle animation */
+  @property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+
   /* The animated gradient border */
   .user-type__button.is-recommended::before {
     content: '';
     position: absolute;
     top: -3px; left: -3px; right: -3px; bottom: -3px;
-    background: linear-gradient(90deg, #FF9933, #138808, #FF9933, #138808);
-    background-size: 300% 300%;
+    background: conic-gradient(from var(--angle), #FF9933, #FFFFFF, #138808, #FF9933);
     z-index: 0;
     border-radius: 14px;
-    animation: tricolorBorder 3s linear infinite;
+    animation: spinTricolor 3s linear infinite;
   }
   
   /* The inner button background */
@@ -489,9 +495,9 @@
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   }
   
-  @keyframes tricolorBorder {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 300% 50%; }
+  @keyframes spinTricolor {
+    0% { --angle: 0deg; }
+    100% { --angle: 360deg; }
   }
   
   .recommended-badge {
